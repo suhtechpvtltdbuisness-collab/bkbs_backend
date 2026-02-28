@@ -49,9 +49,9 @@ class AuthService {
   /**
    * Login user
    */
-  async login(identifier, password, metadata = {}) {
-    // Find user by email or employeeId
-    const user = await userRepository.findByEmailOrEmployeeId(identifier);
+  async login(email, password, metadata = {}) {
+    // Find user by email
+    const user = await userRepository.findByEmail(email);
 
     if (!user) {
       throw new ApiError(401, "Invalid credentials");

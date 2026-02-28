@@ -13,7 +13,8 @@
     "dev": "nodemon src/server.js",
     "build": "echo 'No build step required'",
     "vercel-build": "echo 'Vercel build complete'",
-    "migrate": "node src/migrations/runner.js"
+    "migrate": "node src/migrations/runner.js up",
+    "migrate:down": "node src/migrations/runner.js down"
   },
   "keywords": [
     "express",

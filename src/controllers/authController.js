@@ -28,6 +28,7 @@ export const register = asyncHandler(async (req, res) => {
   successResponse(res, 201, "User registered successfully", {
     user: result.user,
     accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   });
 });
 
@@ -37,14 +38,14 @@ export const register = asyncHandler(async (req, res) => {
  * @access  Public
  */
 export const login = asyncHandler(async (req, res) => {
-  const { identifier, password } = req.body;
+  const { email, password } = req.body;
 
   const metadata = {
     userAgent: getUserAgent(req),
     ipAddress: getClientIp(req),
   };
 
-  const result = await authService.login(identifier, password, metadata);
+  const result = await authService.login(email, password, metadata);
 
   // Set refresh token in httpOnly cookie
   res.cookie("refreshToken", result.refreshToken, {
@@ -57,6 +58,7 @@ export const login = asyncHandler(async (req, res) => {
   successResponse(res, 200, "Login successful", {
     user: result.user,
     accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   });
 });
 

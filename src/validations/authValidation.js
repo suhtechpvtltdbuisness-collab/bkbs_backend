@@ -54,8 +54,9 @@ export const registerSchema = Joi.object({
 });
 
 export const loginSchema = Joi.object({
-  identifier: Joi.string().required().messages({
-    "any.required": "Email or employee ID is required",
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required",
   }),
 
   password: Joi.string().required().messages({
