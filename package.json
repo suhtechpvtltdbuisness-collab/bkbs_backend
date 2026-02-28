@@ -4,9 +4,14 @@
   "description": "Express backend with MongoDB, JWT authentication and authorization",
   "type": "module",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "build": "echo 'No build step required'",
     "migrate": "node src/migrations/runner.js"
   },
   "keywords": [

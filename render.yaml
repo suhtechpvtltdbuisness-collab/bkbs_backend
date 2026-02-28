@@ -1,0 +1,29 @@
+# Build command (optional for Node.js)
+build:
+  - npm install
+
+# Start command
+startCommand: npm start
+
+# Environment
+envVars:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    sync: false
+  - key: MONGODB_URI
+    sync: false
+  - key: JWT_ACCESS_SECRET
+    sync: false
+  - key: JWT_REFRESH_SECRET
+    sync: false
+  - key: JWT_ACCESS_EXPIRE
+    value: 15m
+  - key: JWT_REFRESH_EXPIRE
+    value: 7d
+  - key: RATE_LIMIT_WINDOW_MS
+    value: 900000
+  - key: RATE_LIMIT_MAX_REQUESTS
+    value: 100
+  - key: CORS_ORIGIN
+    sync: false
