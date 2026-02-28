@@ -1,0 +1,36 @@
+{
+  "name": "bkbs_backend",
+  "version": "1.0.0",
+  "description": "Express backend with MongoDB, JWT authentication and authorization",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "migrate": "node src/migrations/runner.js"
+  },
+  "keywords": [
+    "express",
+    "mongodb",
+    "jwt",
+    "authentication"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "express-rate-limit": "^7.1.5",
+    "express-mongo-sanitize": "^2.2.0",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "joi": "^17.11.0",
+    "cookie-parser": "^1.4.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
