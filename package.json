@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Express backend with MongoDB, JWT authentication and authorization",
   "type": "module",
-  "main": "src/server.js",
+  "main": "index.js",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
@@ -12,6 +12,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "echo 'No build step required'",
+    "vercel-build": "echo 'Vercel build complete'",
     "migrate": "node src/migrations/runner.js"
   },
   "keywords": [
