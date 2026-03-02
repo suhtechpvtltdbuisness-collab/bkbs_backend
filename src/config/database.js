@@ -15,10 +15,15 @@ const connectDB = async () => {
   try {
     // Configure mongoose for serverless
     mongoose.set("strictQuery", true);
+    mongoose.set("bufferCommands", false);
 
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
+      socketTimeoutMS: 8000,
+      maxPoolSize: 1,
+      minPoolSize: 0,
+      maxIdleTimeMS: 10000,
+      connectTimeoutMS: 10000,
     });
 
     isConnected = conn.connections[0].readyState === 1;
