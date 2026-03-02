@@ -38,6 +38,8 @@ export const register = asyncHandler(async (req, res) => {
  * @access  Public
  */
 export const login = asyncHandler(async (req, res) => {
+  console.log("Login attempt:", { email: req.body.email, hasPassword: !!req.body.password });
+  
   const { email, password } = req.body;
 
   const metadata = {
@@ -45,7 +47,10 @@ export const login = asyncHandler(async (req, res) => {
     ipAddress: getClientIp(req),
   };
 
+  console.log("Calling authService.login with metadata:", metadata);
   const result = await authService.login(email, password, metadata);
+  
+  console.log("Login successful for user:", result.user.email);
 
   // Set refresh token in httpOnly cookie
   res.cookie("refreshToken", result.refreshToken, {

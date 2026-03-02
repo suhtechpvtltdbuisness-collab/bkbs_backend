@@ -9,10 +9,14 @@ export const errorHandler = (err, req, res, next) => {
   error.message = err.message;
   error.statusCode = err.statusCode || 500;
 
-  // Log error for debugging
-  if (config.env === "development") {
-    console.error("Error:", err);
-  }
+  // Log error for debugging (including in production)
+  console.error("Error Details:", {
+    message: err.message,
+    stack: err.stack,
+    statusCode: error.statusCode,
+    name: err.name,
+    code: err.code,
+  });
 
   // Mongoose bad ObjectId
   if (err.name === "CastError") {

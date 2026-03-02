@@ -4,8 +4,11 @@ import connectDB from "./src/config/database.js";
 // Handler for Vercel serverless functions
 const handler = async (req, res) => {
   try {
+    console.log(`${req.method} ${req.url} - Starting request`);
+    
     // Ensure database connection is established
     await connectDB();
+    console.log("Database connection confirmed");
 
     // Pass request to Express app
     return app(req, res);
