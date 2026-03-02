@@ -25,6 +25,7 @@ const connectDB = async () => {
   }
 
   try {
+    console.log("Attempting MongoDB connection...");
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 8000,
@@ -36,6 +37,10 @@ const connectDB = async () => {
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    
+    // Test the connection with a simple operation
+    await mongoose.connection.db.admin().ping();
+    console.log("✅ MongoDB Ping successful");
 
     // Handle connection events (only in non-serverless env)
     if (process.env.VERCEL !== "1") {

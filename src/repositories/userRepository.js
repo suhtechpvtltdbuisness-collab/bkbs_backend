@@ -15,7 +15,21 @@ class UserRepository {
   }
 
   async findByEmail(email) {
-    return await User.findOne({ email }).select("+password +refreshToken");
+    console.log("UserRepository.findByEmail - Starting query for:", email);
+    const startTime = Date.now();
+    
+    try {
+      const user = await User.findOne({ email }).select("+password +refreshToken").maxTimeMS(5000);
+      
+      const duration = Date.now() - startTime;
+      console.log(`UserRepository.findByEmail - Query completed in ${duration}ms, found:`, !!user);
+      
+      return user;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`UserRepository.findByEmail - Query failed after ${duration}ms:`, error.message);
+      throw error;
+    }
   }
 
   async findByEmployeeId(employeeId) {

@@ -50,8 +50,12 @@ class AuthService {
    * Login user
    */
   async login(email, password, metadata = {}) {
+    console.log("AuthService.login - Starting, email:", email);
+    
     // Find user by email
+    console.log("AuthService.login - Querying database for user...");
     const user = await userRepository.findByEmail(email);
+    console.log("AuthService.login - User found:", !!user);
 
     if (!user) {
       throw new ApiError(401, "Invalid credentials");
@@ -62,18 +66,24 @@ class AuthService {
       throw new ApiError(403, "Account has been deleted");
     }
 
+    console.log("AuthService.login - Comparing password...");
     // Verify password
     const isPasswordValid = await user.comparePassword(password);
+    console.log("AuthService.login - Password valid:", isPasswordValid);
+    
     if (!isPasswordValid) {
       throw new ApiError(401, "Invalid credentials");
     }
 
+    console.log("AuthService.login - Updating last login...");
     // Update last login
     await userRepository.updateLastLogin(user._id);
 
+    console.log("AuthService.login - Generating tokens...");
     // Generate tokens
     const tokens = await this.generateTokens(user, metadata);
 
+    console.log("AuthService.login - Login complete");
     return {
       user: user.getPublicProfile(),
       ...tokens,

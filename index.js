@@ -5,7 +5,7 @@ import connectDB from "./src/config/database.js";
 const handler = async (req, res) => {
   try {
     console.log(`${req.method} ${req.url} - Starting request`);
-    
+
     // Ensure database connection is established
     await connectDB();
     console.log("Database connection confirmed");
