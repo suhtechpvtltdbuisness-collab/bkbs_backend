@@ -45,12 +45,12 @@ const connectDB = async () => {
     console.log("📍 MongoDB URI configured");
     
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 8000,
-      socketTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
       maxPoolSize: 1,
       minPoolSize: 0,
       maxIdleTimeMS: 10000,
-      connectTimeoutMS: 8000,
+      connectTimeoutMS: 10000,
       family: 4, // Use IPv4, skip trying IPv6
     });
 
@@ -81,7 +81,17 @@ const connectDB = async () => {
 
     return conn.connection;
   } catch (error) {
-    console.error(`❌ Error connecting to MongoDB: ${error.message}`);
+    console.error("❌ MongoDB Connection Failed!");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
+    console.error("Error stack:", error.stack);
+    
+    // Log connection string format (without password)
+    const sanitizedUri = process.env.MONGODB_URI 
+      ? process.env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')
+      : "NOT SET";
+    console.error("Connection string format:", sanitizedUri);
 
     // Don't exit in serverless environment
     if (process.env.VERCEL !== "1") {
