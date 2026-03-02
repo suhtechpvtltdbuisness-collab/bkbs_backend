@@ -21,7 +21,7 @@ router.get("/:id", partnerController.getPartnerById);
 
 router.post(
   "/",
-  authorize("admin"),
+  authorize("admin", "editor", "employee"),
   validate(createPartnerSchema),
   partnerController.createPartner,
 );

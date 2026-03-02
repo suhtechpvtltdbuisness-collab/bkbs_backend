@@ -6,6 +6,7 @@ import {
   updateProfileSchema,
   updateUserRoleSchema,
   updateUserStatusSchema,
+  createUserSchema,
 } from "../validations/userValidation.js";
 
 const router = express.Router();
@@ -17,6 +18,15 @@ router.put(
   authenticate,
   validate(updateProfileSchema),
   userController.updateProfile,
+);
+
+// Create new user (employee or editor) - Admin only
+router.post(
+  "/",
+  authenticate,
+  authorize("admin"),
+  validate(createUserSchema),
+  userController.createUser,
 );
 
 // Admin routes

@@ -20,7 +20,7 @@ router.get("/:id", hospitalController.getHospitalById);
 
 router.post(
   "/",
-  authorize("admin"),
+  authorize("admin", "editor", "employee"),
   validate(createHospitalSchema),
   hospitalController.createHospital,
 );

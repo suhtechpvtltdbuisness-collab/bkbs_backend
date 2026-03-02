@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import cardRepository from "../repositories/cardRepository.js";
 import cardMemberRepository from "../repositories/cardMemberRepository.js";
 import { ApiError } from "../utils/apiResponse.js";
@@ -5,27 +6,83 @@ import {
   generateApplicationId,
   generateCardNumber,
 } from "../utils/idGenerator.js";
+import Card from "../models/Card.js";
+import CardMember from "../models/CardMember.js";
 
 class CardService {
   /**
-   * Create new card
+   * Create new card with optional members
+   * Only employee, editor, or admin roles can create cards
    */
-  async createCard(cardData) {
+  async createCard(cardData, userRole) {
+    // Check if user has permission to create card
+    const allowedRoles = ["employee", "editor", "admin"];
+    if (!allowedRoles.includes(userRole)) {
+      throw new ApiError(
+        403,
+        "Access denied. Only employees, editors, or admins can create cards.",
+      );
+    }
+
+    // Extract members array from cardData
+    const { members, ...cardInfo } = cardData;
+
     // Generate applicationId if not provided
-    if (!cardData.applicationId) {
-      cardData.applicationId = await generateApplicationId();
+    if (!cardInfo.applicationId) {
+      cardInfo.applicationId = await generateApplicationId();
     }
 
     // Check if application ID already exists
     const existingCard = await cardRepository.findByApplicationId(
-      cardData.applicationId,
+      cardInfo.applicationId,
     );
 
     if (existingCard) {
       throw new ApiError(409, "Application ID already exists");
     }
 
-    const card = await cardRepository.create(cardData);
+    // If members array is provided, use transaction to create card and members atomically
+    if (members && Array.isArray(members) && members.length > 0) {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        // Set totalMember count
+        cardInfo.totalMember = members.length;
+
+        // Create card
+        const [card] = await Card.create([cardInfo], { session });
+
+        // Create members with cardId reference
+        const membersWithCardId = members.map((member) => ({
+          ...member,
+          cardId: card._id,
+        }));
+
+        await CardMember.insertMany(membersWithCardId, { session });
+
+        // Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        // Return card with populated members
+        const cardWithMembers = await Card.findById(card._id);
+        const cardMembers = await CardMember.find({ cardId: card._id });
+
+        return {
+          ...cardWithMembers.toObject(),
+          members: cardMembers,
+        };
+      } catch (error) {
+        // Rollback transaction on error
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+      }
+    }
+
+    // If no members, just create card
+    const card = await cardRepository.create(cardInfo);
     return card;
   }
 

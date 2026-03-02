@@ -24,10 +24,72 @@ export const updateProfileSchema = Joi.object({
   });
 
 export const updateUserRoleSchema = Joi.object({
-  role: Joi.string().valid("user", "admin", "moderator").required().messages({
-    "any.only": "Role must be one of: user, admin, moderator",
+  role: Joi.string()
+    .valid("user", "admin", "moderator", "employee", "editor")
+    .required()
+    .messages({
+      "any.only":
+        "Role must be one of: user, admin, moderator, employee, editor",
+      "any.required": "Role is required",
+    }),
+});
+
+export const createUserSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required().messages({
+    "string.min": "Name must be at least 2 characters long",
+    "string.max": "Name cannot exceed 100 characters",
+    "any.required": "Name is required",
+  }),
+
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required",
+  }),
+
+  password: Joi.string().min(6).max(50).required().messages({
+    "string.min": "Password must be at least 6 characters long",
+    "string.max": "Password cannot exceed 50 characters",
+    "any.required": "Password is required",
+  }),
+
+  role: Joi.string().valid("employee", "editor").required().messages({
+    "any.only": "Role must be either 'employee' or 'editor'",
     "any.required": "Role is required",
   }),
+
+  employeeId: Joi.string().alphanum().min(3).max(20).messages({
+    "string.alphanum": "Employee ID must only contain alphanumeric characters",
+    "string.min": "Employee ID must be at least 3 characters long",
+    "string.max": "Employee ID cannot exceed 20 characters",
+  }),
+
+  contact: Joi.string()
+    .pattern(/^[0-9+\-() ]+$/)
+    .messages({
+      "string.pattern.base": "Invalid contact number format",
+    }),
+
+  dateOfJoining: Joi.string(),
+
+  location: Joi.string().max(100).messages({
+    "string.max": "Location cannot exceed 100 characters",
+  }),
+
+  salary: Joi.number().positive().messages({
+    "number.positive": "Salary must be a positive number",
+  }),
+
+  workStartTime: Joi.string()
+    .pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .messages({
+      "string.pattern.base": "Work start time must be in HH:MM format",
+    }),
+
+  workEndTime: Joi.string()
+    .pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .messages({
+      "string.pattern.base": "Work end time must be in HH:MM format",
+    }),
 });
 
 export const updateUserStatusSchema = Joi.object({
@@ -40,4 +102,5 @@ export default {
   updateProfileSchema,
   updateUserRoleSchema,
   updateUserStatusSchema,
+  createUserSchema,
 };

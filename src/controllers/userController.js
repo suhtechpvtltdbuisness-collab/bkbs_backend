@@ -7,6 +7,11 @@ import { paginate } from "../utils/helpers.js";
  * @route   GET /api/users/profile
  * @access  Private
  */
+export const createUser = asyncHandler(async (req, res) => {
+  const user = await userService.createUser(req.user, req.body);
+
+  successResponse(res, 201, "User created successfully", { user });
+});
 export const getProfile = asyncHandler(async (req, res) => {
   const user = await userService.getUserProfile(req.user.userId);
 
@@ -95,6 +100,7 @@ export const updateUserRole = asyncHandler(async (req, res) => {
 });
 
 export default {
+  createUser,
   getProfile,
   updateProfile,
   getAllUsers,

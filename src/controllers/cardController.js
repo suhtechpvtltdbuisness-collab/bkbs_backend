@@ -5,6 +5,7 @@ import { paginate } from "../utils/helpers.js";
 class CardController {
   /**
    * Create new card
+   * Only employee, editor, or admin can create cards
    */
   async createCard(req, res, next) {
     try {
@@ -13,7 +14,7 @@ class CardController {
         createdBy: req.user.userId,
       };
 
-      const card = await cardService.createCard(cardData);
+      const card = await cardService.createCard(cardData, req.user.role);
 
       res
         .status(201)

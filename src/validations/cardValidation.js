@@ -24,6 +24,22 @@ export const createCardSchema = Joi.object({
   verificationDate: Joi.string().optional(),
   totalMember: Joi.number().min(0).optional(),
   totalAmount: Joi.number().min(0).optional(),
+  members: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().required().messages({
+          "any.required": "Member name is required",
+        }),
+        relation: Joi.string().required().messages({
+          "any.required": "Member relation is required",
+        }),
+        age: Joi.number().required().min(0).messages({
+          "any.required": "Member age is required",
+          "number.min": "Age must be a positive number",
+        }),
+      }),
+    )
+    .optional(),
 });
 
 export const updateCardSchema = Joi.object({

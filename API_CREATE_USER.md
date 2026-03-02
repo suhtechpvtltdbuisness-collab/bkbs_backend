@@ -1,0 +1,180 @@
+# Create Employee/Editor User API
+
+## Endpoint
+
+```
+POST /api/users
+```
+
+## Authentication
+
+Requires admin authentication token in the Authorization header.
+
+## Request
+
+### Headers
+
+```
+Authorization: Bearer <admin_access_token>
+Content-Type: application/json
+```
+
+### Body
+
+```json
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "password": "securePassword123",
+  "role": "employee",
+  "contact": "+1234567890",
+  "employeeId": "EMP123",
+  "location": "Mumbai",
+  "salary": 50000,
+  "dateOfJoining": "2026-03-01",
+  "workStartTime": "09:00",
+  "workEndTime": "18:00"
+}
+```
+
+### Required Fields
+
+- `name` (string, 2-100 characters)
+- `email` (string, valid email format)
+- `password` (string, 6-50 characters)
+- `role` (string, must be "employee" or "editor")
+
+### Optional Fields
+
+- `employeeId` (string, auto-generated if not provided)
+- `contact` (string, phone number format)
+- `location` (string, max 100 characters)
+- `salary` (number, positive value)
+- `dateOfJoining` (string)
+- `workStartTime` (string, HH:MM format)
+- `workEndTime` (string, HH:MM format)
+
+## Response
+
+### Success (201 Created)
+
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "user": {
+      "_id": "65f1234567890abcdef12345",
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "role": "employee",
+      "employeeId": "EMP123",
+      "contact": "+1234567890",
+      "location": "Mumbai",
+      "salary": 50000,
+      "dateOfJoining": "2026-03-01",
+      "workStartTime": "09:00",
+      "workEndTime": "18:00",
+      "isDeleted": false,
+      "createdAt": "2026-03-02T11:30:00.000Z",
+      "updatedAt": "2026-03-02T11:30:00.000Z"
+    },
+    "employee": {
+      "_id": "65f1234567890abcdef12346",
+      "userId": "65f1234567890abcdef12345",
+      "adminId": "65f0000000000000000admin",
+      "createdAt": "2026-03-02T11:30:00.000Z",
+      "updatedAt": "2026-03-02T11:30:00.000Z"
+    }
+  }
+}
+```
+
+### Error Responses
+
+#### 400 Bad Request - Invalid Role
+
+```json
+{
+  "success": false,
+  "message": "Only 'employee' or 'editor' roles can be created. Provided: admin"
+}
+```
+
+#### 401 Unauthorized
+
+```json
+{
+  "success": false,
+  "message": "Authentication required"
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+  "success": false,
+  "message": "Only admins can create employee/editor users"
+}
+```
+
+#### 409 Conflict - Duplicate Email
+
+```json
+{
+  "success": false,
+  "message": "User with this email already exists"
+}
+```
+
+#### 409 Conflict - Duplicate Employee ID
+
+```json
+{
+  "success": false,
+  "message": "Employee ID already exists"
+}
+```
+
+## Transaction Behavior
+
+This endpoint uses MongoDB transactions to ensure data consistency:
+
+- Both User and Employee records are created atomically
+- If user creation fails, no employee record is created
+- If employee record fails, user creation is rolled back
+- Transaction ensures referential integrity between tables
+
+## Example using cURL
+
+```bash
+# First, login as admin to get access token
+curl -X POST http://localhost:5003/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@bkbs.com",
+    "password": "admin123"
+  }'
+
+# Use the accessToken from login response
+curl -X POST http://localhost:5003/api/users \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE" \
+  -d '{
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "password": "securePass123",
+    "role": "employee",
+    "contact": "+1234567890",
+    "location": "Mumbai",
+    "salary": 50000
+  }'
+```
+
+## Notes
+
+- Only users with admin role can create employee/editor users
+- EmployeeId is auto-generated if not provided (format: EMP-XXX)
+- Password is automatically hashed before storage
+- Transaction logs are visible in server logs for debugging

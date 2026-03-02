@@ -21,7 +21,12 @@ router.get("/stats", authorize("admin"), cardController.getCardStats);
 router.get("/:id", cardController.getCardById);
 router.get("/:id/with-members", cardController.getCardWithMembers);
 
-router.post("/", validate(createCardSchema), cardController.createCard);
+router.post(
+  "/",
+  authorize("admin", "employee", "editor"),
+  validate(createCardSchema),
+  cardController.createCard,
+);
 
 router.put("/:id", validate(updateCardSchema), cardController.updateCard);
 
