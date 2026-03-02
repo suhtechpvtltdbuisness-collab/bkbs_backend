@@ -3,42 +3,48 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-let isConnected = false;
+// Configure mongoose globally for serverless
+mongoose.set("strictQuery", true);
+mongoose.set("bufferCommands", false);
+mongoose.set("bufferTimeoutMS", 30000);
 
 const connectDB = async () => {
-  // Use existing connection if available (for serverless)
-  if (isConnected) {
+  // Check if already connected (readyState 1 = connected)
+  if (mongoose.connection.readyState === 1) {
     console.log("Using existing MongoDB connection");
-    return;
+    return mongoose.connection;
+  }
+
+  // If connecting (readyState 2), wait for it
+  if (mongoose.connection.readyState === 2) {
+    console.log("MongoDB connection in progress, waiting...");
+    return new Promise((resolve, reject) => {
+      mongoose.connection.once("connected", () => resolve(mongoose.connection));
+      mongoose.connection.once("error", reject);
+    });
   }
 
   try {
-    // Configure mongoose for serverless
-    mongoose.set("strictQuery", true);
-    mongoose.set("bufferCommands", false);
-
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 8000,
       maxPoolSize: 1,
       minPoolSize: 0,
       maxIdleTimeMS: 10000,
-      connectTimeoutMS: 10000,
+      connectTimeoutMS: 8000,
+      family: 4, // Use IPv4, skip trying IPv6
     });
 
-    isConnected = conn.connections[0].readyState === 1;
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
     // Handle connection events (only in non-serverless env)
     if (process.env.VERCEL !== "1") {
       mongoose.connection.on("error", (err) => {
         console.error(`❌ MongoDB connection error: ${err}`);
-        isConnected = false;
       });
 
       mongoose.connection.on("disconnected", () => {
         console.log("⚠️  MongoDB disconnected");
-        isConnected = false;
       });
 
       // Graceful shutdown (not needed in serverless)
@@ -48,9 +54,10 @@ const connectDB = async () => {
         process.exit(0);
       });
     }
+
+    return conn.connection;
   } catch (error) {
     console.error(`❌ Error connecting to MongoDB: ${error.message}`);
-    isConnected = false;
 
     // Don't exit in serverless environment
     if (process.env.VERCEL !== "1") {
