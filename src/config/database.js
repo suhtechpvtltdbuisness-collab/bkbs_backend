@@ -9,32 +9,40 @@ mongoose.set("bufferCommands", true);
 mongoose.set("bufferTimeoutMS", 10000);
 
 const connectDB = async () => {
-  // Check if already connected (readyState 1 = connected)
-  if (mongoose.connection.readyState === 1) {
-    console.log("✅ Using existing MongoDB connection");
-    return mongoose.connection;
-  }
-
-  // If connecting (readyState 2), wait for it with timeout
-  if (mongoose.connection.readyState === 2) {
-    console.log("⏳ MongoDB connection in progress, waiting...");
-    return Promise.race([
-      new Promise((resolve, reject) => {
-        mongoose.connection.once("connected", () => {
-          console.log("✅ Connection established while waiting");
-          resolve(mongoose.connection);
-        });
-        mongoose.connection.once("error", reject);
-      }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Connection wait timeout")), 10000)
-      )
-    ]);
-  }
-
   try {
+    // Check if already connected (readyState 1 = connected)
+    if (mongoose.connection.readyState === 1) {
+      console.log("✅ Using existing MongoDB connection");
+      // Verify connection is actually working
+      await mongoose.connection.db.admin().ping();
+      return mongoose.connection;
+    }
+
+    // If connecting (readyState 2), wait for it with timeout
+    if (mongoose.connection.readyState === 2) {
+      console.log("⏳ MongoDB connection in progress, waiting...");
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("Connection wait timeout")), 10000);
+        mongoose.connection.once("connected", () => {
+          clearTimeout(timeout);
+          console.log("✅ Connection established while waiting");
+          resolve();
+        });
+        mongoose.connection.once("error", (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+      return mongoose.connection;
+    }
+
     console.log("🔌 Attempting MongoDB connection...");
-    console.log("📍 MongoDB URI:", process.env.MONGODB_URI ? "Set" : "NOT SET");
+    
+    if (!process.env.MONGODB_URI) {
+      throw new Error("MONGODB_URI environment variable is not set!");
+    }
+    
+    console.log("📍 MongoDB URI configured");
     
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 8000,
@@ -48,6 +56,10 @@ const connectDB = async () => {
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Connection state: ${mongoose.connection.readyState}`);
+    
+    // Verify connection with ping
+    await mongoose.connection.db.admin().ping();
+    console.log("✅ MongoDB Ping successful");
 
     // Handle connection events (only in non-serverless env)
     if (process.env.VERCEL !== "1") {

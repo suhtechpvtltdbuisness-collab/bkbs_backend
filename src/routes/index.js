@@ -10,7 +10,7 @@ import partnerRoutes from "./partnerRoutes.js";
 const router = express.Router();
 
 // Health check route with DB status
-router.get("/health", (req, res) => {
+router.get("/health", async (req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbStatus = {
     0: "disconnected",
@@ -18,6 +18,19 @@ router.get("/health", (req, res) => {
     2: "connecting",
     3: "disconnecting",
   };
+
+  let pingResult = null;
+  let dbHost = mongoose.connection.host || "not connected";
+
+  try {
+    if (dbState === 1) {
+      const pingStart = Date.now();
+      await mongoose.connection.db.admin().ping();
+      pingResult = `${Date.now() - pingStart}ms`;
+    }
+  } catch (error) {
+    pingResult = `Failed: ${error.message}`;
+  }
 
   res.status(dbState === 1 ? 200 : 503).json({
     success: dbState === 1,
@@ -28,7 +41,13 @@ router.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     database: {
       status: dbStatus[dbState],
-      host: mongoose.connection.host || "not connected",
+      host: dbHost,
+      ping: pingResult,
+      mongodbUriConfigured: !!process.env.MONGODB_URI,
+    },
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      vercelRegion: process.env.VERCEL_REGION,
     },
   });
 });
