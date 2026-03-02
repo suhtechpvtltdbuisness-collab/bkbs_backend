@@ -84,9 +84,8 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-// Create indexes for frequently queried fields
+// Create indexes for frequently queried fields (employeeId already indexed via unique: true)
 userSchema.index({ email: 1 });
-userSchema.index({ employeeId: 1 });
 userSchema.index({ isDeleted: 1 });
 
 // Hash password before saving
