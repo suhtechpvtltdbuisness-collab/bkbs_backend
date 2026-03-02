@@ -51,7 +51,7 @@ class AuthService {
    */
   async login(email, password, metadata = {}) {
     console.log("AuthService.login - Starting, email:", email);
-    
+
     // Find user by email
     console.log("AuthService.login - Querying database for user...");
     const user = await userRepository.findByEmail(email);
@@ -70,7 +70,7 @@ class AuthService {
     // Verify password
     const isPasswordValid = await user.comparePassword(password);
     console.log("AuthService.login - Password valid:", isPasswordValid);
-    
+
     if (!isPasswordValid) {
       throw new ApiError(401, "Invalid credentials");
     }

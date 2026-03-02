@@ -3,32 +3,42 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Configure mongoose globally for serverless
+// Configure mongoose for serverless - keep buffering ON but with timeout
 mongoose.set("strictQuery", true);
-mongoose.set("bufferCommands", false);
-mongoose.set("bufferTimeoutMS", 30000);
+mongoose.set("bufferCommands", true);
+mongoose.set("bufferTimeoutMS", 10000);
 
 const connectDB = async () => {
   // Check if already connected (readyState 1 = connected)
   if (mongoose.connection.readyState === 1) {
-    console.log("Using existing MongoDB connection");
+    console.log("✅ Using existing MongoDB connection");
     return mongoose.connection;
   }
 
-  // If connecting (readyState 2), wait for it
+  // If connecting (readyState 2), wait for it with timeout
   if (mongoose.connection.readyState === 2) {
-    console.log("MongoDB connection in progress, waiting...");
-    return new Promise((resolve, reject) => {
-      mongoose.connection.once("connected", () => resolve(mongoose.connection));
-      mongoose.connection.once("error", reject);
-    });
+    console.log("⏳ MongoDB connection in progress, waiting...");
+    return Promise.race([
+      new Promise((resolve, reject) => {
+        mongoose.connection.once("connected", () => {
+          console.log("✅ Connection established while waiting");
+          resolve(mongoose.connection);
+        });
+        mongoose.connection.once("error", reject);
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Connection wait timeout")), 10000)
+      )
+    ]);
   }
 
   try {
-    console.log("Attempting MongoDB connection...");
+    console.log("🔌 Attempting MongoDB connection...");
+    console.log("📍 MongoDB URI:", process.env.MONGODB_URI ? "Set" : "NOT SET");
+    
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 8000,
+      socketTimeoutMS: 10000,
       maxPoolSize: 1,
       minPoolSize: 0,
       maxIdleTimeMS: 10000,
@@ -37,10 +47,7 @@ const connectDB = async () => {
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    
-    // Test the connection with a simple operation
-    await mongoose.connection.db.admin().ping();
-    console.log("✅ MongoDB Ping successful");
+    console.log(`📊 Connection state: ${mongoose.connection.readyState}`);
 
     // Handle connection events (only in non-serverless env)
     if (process.env.VERCEL !== "1") {
