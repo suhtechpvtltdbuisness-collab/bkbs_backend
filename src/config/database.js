@@ -22,7 +22,10 @@ const connectDB = async () => {
     if (mongoose.connection.readyState === 2) {
       console.log("⏳ MongoDB connection in progress, waiting...");
       await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("Connection wait timeout")), 10000);
+        const timeout = setTimeout(
+          () => reject(new Error("Connection wait timeout")),
+          10000,
+        );
         mongoose.connection.once("connected", () => {
           clearTimeout(timeout);
           console.log("✅ Connection established while waiting");
@@ -37,13 +40,13 @@ const connectDB = async () => {
     }
 
     console.log("🔌 Attempting MongoDB connection...");
-    
+
     if (!process.env.MONGODB_URI) {
       throw new Error("MONGODB_URI environment variable is not set!");
     }
-    
+
     console.log("📍 MongoDB URI configured");
-    
+
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
@@ -56,7 +59,7 @@ const connectDB = async () => {
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Connection state: ${mongoose.connection.readyState}`);
-    
+
     // Verify connection with ping
     await mongoose.connection.db.admin().ping();
     console.log("✅ MongoDB Ping successful");
@@ -86,10 +89,10 @@ const connectDB = async () => {
     console.error("Error message:", error.message);
     console.error("Error code:", error.code);
     console.error("Error stack:", error.stack);
-    
+
     // Log connection string format (without password)
-    const sanitizedUri = process.env.MONGODB_URI 
-      ? process.env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')
+    const sanitizedUri = process.env.MONGODB_URI
+      ? process.env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, "//$1:****@")
       : "NOT SET";
     console.error("Connection string format:", sanitizedUri);
 

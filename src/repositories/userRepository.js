@@ -19,8 +19,9 @@ class UserRepository {
     const startTime = Date.now();
 
     try {
-      const user = await User.findOne({ email })
-        .select("+password +refreshToken");
+      const user = await User.findOne({ email }).select(
+        "+password +refreshToken",
+      );
 
       const duration = Date.now() - startTime;
       console.log(
