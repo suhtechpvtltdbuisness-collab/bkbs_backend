@@ -9,6 +9,9 @@ import { generalLimiter } from "./middlewares/rateLimiter.js";
 
 const app = express();
 
+// Trust proxy for Vercel/serverless environments
+app.set("trust proxy", 1);
+
 // Security middleware
 app.use(helmet());
 app.use(mongoSanitize());
