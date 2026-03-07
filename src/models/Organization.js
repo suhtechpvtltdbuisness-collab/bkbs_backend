@@ -2,6 +2,23 @@ import mongoose from "mongoose";
 
 const organizationSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: [true, "Organization name is required"],
+      trim: true,
+    },
+    type: {
+      type: String,
+      trim: true,
+    },
+    contact: {
+      type: String,
+      trim: true,
+    },
+    location: {
+      type: String,
+      trim: true,
+    },
     registrationId: {
       type: String,
       trim: true,
@@ -55,6 +72,8 @@ const organizationSchema = new mongoose.Schema(
 organizationSchema.index({ registrationId: 1 });
 organizationSchema.index({ isDeleted: 1 });
 organizationSchema.index({ createdBy: 1 });
+organizationSchema.index({ name: 1 });
+organizationSchema.index({ contact: 1 });
 
 const Organization = mongoose.model("Organization", organizationSchema);
 

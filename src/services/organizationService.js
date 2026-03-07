@@ -1,4 +1,5 @@
 import organizationRepository from "../repositories/organizationRepository.js";
+import doctorRepository from "../repositories/doctorRepository.js";
 import { ApiError } from "../utils/apiResponse.js";
 
 class OrganizationService {
@@ -30,7 +31,7 @@ class OrganizationService {
   }
 
   /**
-   * Get organization by ID
+   * Get organization by ID with doctors
    */
   async getOrganizationById(id) {
     const organization = await organizationRepository.findById(id);
@@ -39,7 +40,17 @@ class OrganizationService {
       throw new ApiError(404, "Organization not found");
     }
 
-    return organization;
+    // Fetch doctors for this organization
+    const doctorsData = await doctorRepository.findByOrganizationId(id, {
+      page: 1,
+      limit: 1000, // Get all doctors for this organization
+      sort: { name: 1 },
+    });
+
+    return {
+      organization,
+      doctors: doctorsData.doctors,
+    };
   }
 
   /**

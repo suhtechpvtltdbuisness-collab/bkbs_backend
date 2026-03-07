@@ -1,6 +1,27 @@
 import Joi from "joi";
 
 export const createOrganizationSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(200).required().messages({
+    "string.min": "Organization name must be at least 2 characters long",
+    "string.max": "Organization name cannot exceed 200 characters",
+    "any.required": "Organization name is required",
+  }),
+
+  type: Joi.string().trim().max(100).messages({
+    "string.max": "Type cannot exceed 100 characters",
+  }),
+
+  contact: Joi.string()
+    .trim()
+    .pattern(/^[0-9+\-() ]+$/)
+    .messages({
+      "string.pattern.base": "Invalid contact number format",
+    }),
+
+  location: Joi.string().trim().max(200).messages({
+    "string.max": "Location cannot exceed 200 characters",
+  }),
+
   registrationId: Joi.string().trim().max(100).messages({
     "string.max": "Registration ID cannot exceed 100 characters",
   }),
@@ -40,6 +61,26 @@ export const createOrganizationSchema = Joi.object({
 });
 
 export const updateOrganizationSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(200).messages({
+    "string.min": "Organization name must be at least 2 characters long",
+    "string.max": "Organization name cannot exceed 200 characters",
+  }),
+
+  type: Joi.string().trim().max(100).messages({
+    "string.max": "Type cannot exceed 100 characters",
+  }),
+
+  contact: Joi.string()
+    .trim()
+    .pattern(/^[0-9+\-() ]+$/)
+    .messages({
+      "string.pattern.base": "Invalid contact number format",
+    }),
+
+  location: Joi.string().trim().max(200).messages({
+    "string.max": "Location cannot exceed 200 characters",
+  }),
+
   registrationId: Joi.string().trim().max(100).messages({
     "string.max": "Registration ID cannot exceed 100 characters",
   }),

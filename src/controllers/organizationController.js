@@ -38,18 +38,14 @@ export const getAllOrganizations = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Get organization by ID
+ * @desc    Get organization by ID with doctors
  * @route   GET /api/organizations/:id
  * @access  Private
  */
 export const getOrganizationById = asyncHandler(async (req, res) => {
-  const organization = await organizationService.getOrganizationById(
-    req.params.id,
-  );
+  const result = await organizationService.getOrganizationById(req.params.id);
 
-  successResponse(res, 200, "Organization retrieved successfully", {
-    organization,
-  });
+  successResponse(res, 200, "Organization retrieved successfully", result);
 });
 
 /**
