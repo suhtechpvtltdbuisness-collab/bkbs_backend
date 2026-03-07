@@ -23,6 +23,29 @@ const server = app.listen(PORT, () => {
 ║                                           ║
 ╚═══════════════════════════════════════════╝
   `);
+
+  // Warn about file storage in production
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.log(`
+⚠️  WARNING: File Upload Limitation Detected
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Running in serverless environment. Files are stored in /tmp
+which is temporary and will be deleted after execution.
+
+❌ Files will NOT persist between requests
+❌ Files are NOT accessible after function timeout
+❌ Not suitable for production use
+
+✅ RECOMMENDED: Migrate to cloud storage
+   - AWS S3
+   - Cloudinary
+   - Vercel Blob Storage
+   - Azure Blob Storage
+
+See SERVERLESS_FILE_UPLOAD.md for migration guide
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `);
+  }
 });
 
 // Handle unhandled promise rejections

@@ -12,32 +12,33 @@ const __dirname = path.dirname(__filename);
 
 /**
  * Multer configuration for file uploads
- * Stores files in uploads folder organized by year
+ * Uses memory storage for Vercel Blob uploads
+ * Falls back to disk storage for local development
  */
 
+// Check if using Vercel Blob storage
+const useVercelBlob =
+  process.env.BLOB_READ_WRITE_TOKEN &&
+  (process.env.VERCEL || process.env.NODE_ENV === "production");
+
 // Storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Get current year
-    const year = new Date().getFullYear();
-
-    // Get year-specific upload directory (handles both local and serverless)
-    const uploadPath = getYearUploadDirectory(year);
-
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename: timestamp-random-originalname
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    const nameWithoutExt = path.basename(file.originalname, ext);
-
-    // Sanitize filename (remove special characters)
-    const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, "_");
-
-    cb(null, `${sanitizedName}-${uniqueSuffix}${ext}`);
-  },
-});
+const storage = useVercelBlob
+  ? multer.memoryStorage() // Use memory storage for Vercel Blob
+  : multer.diskStorage({
+      // Use disk storage for local development
+      destination: (req, file, cb) => {
+        const year = new Date().getFullYear();
+        const uploadPath = getYearUploadDirectory(year);
+        cb(null, uploadPath);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.originalname);
+        const nameWithoutExt = path.basename(file.originalname, ext);
+        const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, "_");
+        cb(null, `${sanitizedName}-${uniqueSuffix}${ext}`);
+      },
+    });
 
 // File filter - accept only specific file types
 const fileFilter = (req, file, cb) => {

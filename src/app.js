@@ -7,6 +7,7 @@ import connectDB from "./config/database.js";
 import routes from "./routes/index.js";
 import { errorHandler, notFound } from "./middlewares/errorHandler.js";
 import { generalLimiter } from "./middlewares/rateLimiter.js";
+import checkFileExists from "./middlewares/checkFileExists.js";
 
 const app = express();
 
@@ -47,8 +48,14 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Cookie parser
 app.use(cookieParser());
 
+// Check if files exist before serving (provides better error messages)
+app.use("/uploads", checkFileExists);
+
 // Serve uploaded files statically
+// For local development
 app.use("/uploads", express.static("uploads"));
+// For serverless environments (Vercel, Lambda) - serves from /tmp
+app.use("/uploads", express.static("/tmp/uploads"));
 
 // Rate limiting
 app.use("/api", generalLimiter);

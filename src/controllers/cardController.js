@@ -1,6 +1,7 @@
 import cardService from "../services/cardService.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { paginate } from "../utils/helpers.js";
+import { uploadToVercelBlob } from "../utils/vercelBlob.js";
 
 class CardController {
   /**
@@ -14,16 +15,44 @@ class CardController {
         createdBy: req.user.userId,
       };
 
-      // Handle uploaded documents (multer fields structure)
+      // Handle uploaded documents
       if (req.files && req.files.documents && req.files.documents.length > 0) {
-        cardData.documents = req.files.documents.map((file) => ({
-          filename: file.filename,
-          originalName: file.originalname,
-          path: file.path,
-          size: file.size,
-          mimetype: file.mimetype,
-          uploadedAt: new Date(),
-        }));
+        const useVercelBlob =
+          process.env.BLOB_READ_WRITE_TOKEN &&
+          (process.env.VERCEL || process.env.NODE_ENV === "production");
+
+        if (useVercelBlob) {
+          // Upload to Vercel Blob (production/serverless)
+          try {
+            cardData.documents = await uploadToVercelBlob(req.files.documents);
+          } catch (error) {
+            console.error("Vercel Blob upload error:", error);
+            throw new Error("Failed to upload documents to cloud storage");
+          }
+        } else {
+          // Local file storage (development)
+          cardData.documents = req.files.documents.map((file) => {
+            // Extract relative path for URL access
+            let relativePath = file.path;
+
+            if (relativePath.startsWith("/tmp/uploads/")) {
+              relativePath = relativePath.replace("/tmp/uploads/", "/uploads/");
+            } else if (relativePath.includes("/uploads/")) {
+              relativePath = relativePath.substring(
+                relativePath.indexOf("/uploads/"),
+              );
+            }
+
+            return {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: relativePath,
+              size: file.size,
+              mimetype: file.mimetype,
+              uploadedAt: new Date(),
+            };
+          });
+        }
       }
 
       // Parse members if it's a string (from multipart/form-data)

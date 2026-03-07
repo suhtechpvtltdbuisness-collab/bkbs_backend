@@ -1,22 +1,38 @@
 # Serverless File Upload Notes
 
+## ✅ **SOLVED: Now Using Vercel Blob Storage!**
+
+**This application now uses Vercel Blob Storage for production file uploads, solving all serverless limitations.**
+
+📖 **See [VERCEL_BLOB_INTEGRATION.md](./VERCEL_BLOB_INTEGRATION.md) for complete documentation.**
+
+### Key Benefits:
+
+✅ **Permanent Storage** - Files persist forever, not deleted after function execution  
+✅ **Global CDN** - Fast access from anywhere in the world  
+✅ **Direct URLs** - Files accessible via permanent CDN URLs  
+✅ **Native Vercel Integration** - Works seamlessly with Vercel deployments  
+✅ **1GB Free Tier** - Plenty for most applications
+
+---
+
 ## Current Implementation
 
-The file upload system now works in both **local development** and **serverless environments** (Vercel, AWS Lambda, etc.).
+The file upload system now works in both **local development** and **production (Vercel)**:
 
 ### How it Works:
 
 1. **Local Development:**
    - Files are stored in `./uploads/YYYY/` directory
-   - Files are accessible via: `http://localhost:3000/uploads/2026/filename.pdf`
+   - Files are accessible via: `http://localhost:5003/uploads/2026/filename.pdf`
+   - Uses multer disk storage
 
-2. **Serverless (Vercel/Lambda):**
-   - Files are stored in `/tmp/uploads/YYYY/` directory
-   - The `/tmp` directory is the only writable location in serverless environments
-   - **⚠️ Important Limitations:**
-     - Files in `/tmp` are **temporary** and will be deleted after function execution
-     - Files are **not accessible via URL** in serverless environments
-     - Maximum `/tmp` storage: 512 MB (AWS Lambda), 100 MB (Vercel)
+2. **Production (Vercel with Blob Storage):**
+   - Files are uploaded directly to **Vercel Blob Storage**
+   - Example URL: `https://vfeuwz5pprqnrrpu.public.blob.vercel-storage.com/2026/filename.pdf`
+   - Files are **permanent** and **globally accessible**
+   - Uses multer memory storage + Vercel Blob SDK
+   - No `/tmp` limitations!
 
 ## Production Recommendations
 
@@ -49,11 +65,13 @@ For production serverless deployments, **DO NOT** use local file storage. Instea
 ## Migration to Cloud Storage (Example: AWS S3)
 
 ### 1. Install AWS SDK
+
 ```bash
 npm install @aws-sdk/client-s3 multer-s3
 ```
 
 ### 2. Update `src/middlewares/upload.js`
+
 ```javascript
 import { S3Client } from "@aws-sdk/client-s3";
 import multerS3 from "multer-s3";
@@ -76,14 +94,17 @@ const storage = multerS3({
     const year = new Date().getFullYear();
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
-    const sanitizedName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, "_");
-    
+    const sanitizedName = path
+      .basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9]/g, "_");
+
     cb(null, `${year}/${sanitizedName}-${uniqueSuffix}${ext}`);
   },
 });
 ```
 
 ### 3. Environment Variables
+
 ```env
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key
@@ -94,6 +115,7 @@ AWS_S3_BUCKET_NAME=your-bucket-name
 ## Current Workaround for Testing
 
 For now, the system will:
+
 - ✅ Work perfectly in local development
 - ✅ Accept file uploads in serverless (stored in `/tmp`)
 - ⚠️ Files won't be accessible via URL in serverless
@@ -110,6 +132,7 @@ For now, the system will:
 ## Testing
 
 Test file uploads:
+
 ```bash
 # Local development - should work
 curl -X POST http://localhost:3000/api/cards \

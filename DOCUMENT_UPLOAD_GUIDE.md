@@ -4,14 +4,18 @@
 
 Cards now support document uploads with automatic yearly folder organization. You can upload up to 5 documents per card.
 
+**🌐 Production Storage:** This application uses **Vercel Blob Storage** for file uploads in production. Files are permanently stored with global CDN access. See [VERCEL_BLOB_INTEGRATION.md](./VERCEL_BLOB_INTEGRATION.md) for details.
+
 ## Features
 
 - ✅ Multiple file uploads (max 5 files)
-- ✅ Automatic yearly folder organization (`uploads/YYYY/`)
+- ✅ Automatic yearly folder organization (`uploads/YYYY/` locally, `YYYY/` in cloud)
 - ✅ File size limit: 5MB per file
 - ✅ Supported file types: JPEG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX
 - ✅ Automatic sanitization of filenames
 - ✅ Secure file storage
+- ✅ **Production:** Permanent CDN storage via Vercel Blob
+- ✅ **Development:** Local disk storage
 
 ## API Usage
 
