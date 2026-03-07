@@ -44,22 +44,30 @@ const addCardUniqueIndexes = async () => {
 
     console.log("\n✅ Migration completed successfully!");
     console.log("ℹ️  Contact numbers are now unique");
-    console.log("ℹ️  Name combinations (firstName + middleName + lastName) are now unique");
+    console.log(
+      "ℹ️  Name combinations (firstName + middleName + lastName) are now unique",
+    );
   } catch (error) {
     console.error("❌ Migration failed:", error);
-    
+
     if (error.code === 11000) {
       console.error("\n⚠️  Duplicate key error detected!");
       console.error("This means you have duplicate data in your database.");
-      console.error("Please clean up duplicate entries before running this migration:");
+      console.error(
+        "Please clean up duplicate entries before running this migration:",
+      );
       console.error("1. Find cards with duplicate contact numbers");
       console.error("2. Find cards with duplicate name combinations");
       console.error("3. Remove or merge duplicate entries");
       console.error("\nYou can find duplicates with these queries:");
-      console.error("  db.cards.aggregate([{$group: {_id: '$contact', count: {$sum: 1}}}, {$match: {count: {$gt: 1}}}])");
-      console.error("  db.cards.aggregate([{$group: {_id: {firstName: '$firstName', middleName: '$middleName', lastName: '$lastName'}, count: {$sum: 1}}}, {$match: {count: {$gt: 1}}}])");
+      console.error(
+        "  db.cards.aggregate([{$group: {_id: '$contact', count: {$sum: 1}}}, {$match: {count: {$gt: 1}}}])",
+      );
+      console.error(
+        "  db.cards.aggregate([{$group: {_id: {firstName: '$firstName', middleName: '$middleName', lastName: '$lastName'}, count: {$sum: 1}}}, {$match: {count: {$gt: 1}}}])",
+      );
     }
-    
+
     throw error;
   } finally {
     await mongoose.connection.close();

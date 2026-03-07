@@ -1,9 +1,11 @@
 # Card Document Upload Guide
 
 ## Overview
+
 Cards now support document uploads with automatic yearly folder organization. You can upload up to 5 documents per card.
 
 ## Features
+
 - ✅ Multiple file uploads (max 5 files)
 - ✅ Automatic yearly folder organization (`uploads/YYYY/`)
 - ✅ File size limit: 5MB per file
@@ -20,6 +22,7 @@ Cards now support document uploads with automatic yearly folder organization. Yo
 **Content-Type:** `multipart/form-data`
 
 **Headers:**
+
 ```
 Authorization: Bearer YOUR_JWT_TOKEN
 Content-Type: multipart/form-data
@@ -27,18 +30,18 @@ Content-Type: multipart/form-data
 
 **Request Body (Form Data):**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| firstName | string | Yes | First name |
-| middleName | string | No | Middle name |
-| lastName | string | No | Last name |
-| contact | string | Yes | Contact number |
-| alternateContact | string | No | Alternate contact |
-| email | string | No | Email address |
-| applicationDate | string | No | Application date |
-| totalAmount | number | No | Total amount |
-| documents | file[] | No | Upload files (max 5) |
-| members | string | No | JSON string of members array |
+| Field            | Type   | Required | Description                  |
+| ---------------- | ------ | -------- | ---------------------------- |
+| firstName        | string | Yes      | First name                   |
+| middleName       | string | No       | Middle name                  |
+| lastName         | string | No       | Last name                    |
+| contact          | string | Yes      | Contact number               |
+| alternateContact | string | No       | Alternate contact            |
+| email            | string | No       | Email address                |
+| applicationDate  | string | No       | Application date             |
+| totalAmount      | number | No       | Total amount                 |
+| documents        | file[] | No       | Upload files (max 5)         |
+| members          | string | No       | JSON string of members array |
 
 ### Example: Using Postman
 
@@ -82,38 +85,41 @@ curl -X POST "{{URL}}/api/cards" \
 const formData = new FormData();
 
 // Add text fields
-formData.append('firstName', 'Rajesh');
-formData.append('middleName', 'Kumar');
-formData.append('lastName', 'Sharma');
-formData.append('contact', '9876333210');
-formData.append('alternateContact', '9876543211');
-formData.append('email', 'rajesh.sharma@example.com');
-formData.append('applicationDate', '2026-03-02');
-formData.append('totalAmount', '5000');
+formData.append("firstName", "Rajesh");
+formData.append("middleName", "Kumar");
+formData.append("lastName", "Sharma");
+formData.append("contact", "9876333210");
+formData.append("alternateContact", "9876543211");
+formData.append("email", "rajesh.sharma@example.com");
+formData.append("applicationDate", "2026-03-02");
+formData.append("totalAmount", "5000");
 
 // Add files (from file input)
 const fileInput = document.querySelector('input[type="file"]');
 for (let file of fileInput.files) {
-  formData.append('documents', file);
+  formData.append("documents", file);
 }
 
 // Add members as JSON string
-formData.append('members', JSON.stringify([
-  { name: 'Priya Sharma', relation: 'Wife', age: 28 },
-  { name: 'Aarav Sharma', relation: 'Son', age: 5 }
-]));
+formData.append(
+  "members",
+  JSON.stringify([
+    { name: "Priya Sharma", relation: "Wife", age: 28 },
+    { name: "Aarav Sharma", relation: "Son", age: 5 },
+  ]),
+);
 
 // Send request
-fetch('{{URL}}/api/cards', {
-  method: 'POST',
+fetch("{{URL}}/api/cards", {
+  method: "POST",
   headers: {
-    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+    Authorization: "Bearer YOUR_JWT_TOKEN",
   },
-  body: formData
+  body: formData,
 })
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Error:', error));
+  .then((response) => response.json())
+  .then((data) => console.log(data))
+  .catch((error) => console.error("Error:", error));
 ```
 
 ## Response Example
@@ -211,6 +217,7 @@ Uploaded files are accessible via HTTP:
 ## Error Handling
 
 ### Invalid File Type
+
 ```json
 {
   "success": false,
@@ -219,6 +226,7 @@ Uploaded files are accessible via HTTP:
 ```
 
 ### File Size Exceeded
+
 ```json
 {
   "success": false,
@@ -227,6 +235,7 @@ Uploaded files are accessible via HTTP:
 ```
 
 ### Too Many Files
+
 ```json
 {
   "success": false,

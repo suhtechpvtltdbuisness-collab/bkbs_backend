@@ -2,6 +2,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import {
+  getYearUploadDirectory,
+  deleteFile as deleteFileUtil,
+} from "../utils/fileSystem.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,13 +21,8 @@ const storage = multer.diskStorage({
     // Get current year
     const year = new Date().getFullYear();
 
-    // Create path: uploads/YYYY/
-    const uploadPath = path.join(process.cwd(), "uploads", year.toString());
-
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
+    // Get year-specific upload directory (handles both local and serverless)
+    const uploadPath = getYearUploadDirectory(year);
 
     cb(null, uploadPath);
   },
@@ -79,8 +78,16 @@ const upload = multer({
 /**
  * Middleware for uploading card documents
  * Maximum 5 files
+ * Also accepts other form fields
  */
-export const uploadCardDocuments = upload.array("documents", 5);
+export const uploadCardDocuments = upload.fields([
+  { name: "documents", maxCount: 5 },
+]);
+
+/**
+ * Alternative: Accept any fields (more flexible)
+ */
+export const uploadAnyFields = upload.any();
 
 /**
  * Middleware for uploading single file
@@ -89,19 +96,9 @@ export const uploadSingleFile = upload.single("document");
 
 /**
  * Helper function to delete files
+ * Re-export from fileSystem utility
  */
-export const deleteFile = (filePath) => {
-  try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error deleting file:", error);
-    return false;
-  }
-};
+export const deleteFile = deleteFileUtil;
 
 /**
  * Helper function to get file URL
@@ -109,7 +106,16 @@ export const deleteFile = (filePath) => {
 export const getFileUrl = (req, filePath) => {
   if (!filePath) return null;
 
-  // Convert absolute path to relative URL
+  // In serverless environments, files in /tmp are not accessible via URL
+  // This is a limitation - consider using cloud storage (S3, Cloudinary) for production
+  if (filePath.startsWith("/tmp")) {
+    console.warn(
+      "Warning: Files in /tmp directory are not accessible via URL in serverless environments",
+    );
+    return null;
+  }
+
+  // Convert absolute path to relative URL for local development
   const relativePath = filePath.replace(process.cwd(), "");
   const fileUrl = `${req.protocol}://${req.get("host")}${relativePath.replace(/\\/g, "/")}`;
 

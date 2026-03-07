@@ -95,6 +95,10 @@ const cardSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Created by is required"],
     },
+    isPrint: {
+      type: Boolean,
+      default: true,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

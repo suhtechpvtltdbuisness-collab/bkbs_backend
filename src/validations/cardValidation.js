@@ -24,6 +24,7 @@ export const createCardSchema = Joi.object({
   verificationDate: Joi.string().optional(),
   totalMember: Joi.number().min(0).optional(),
   totalAmount: Joi.number().min(0).optional(),
+  isPrint: Joi.boolean().optional(),
   documents: Joi.array()
     .items(
       Joi.object({
@@ -74,6 +75,7 @@ export const updateCardSchema = Joi.object({
   verificationDate: Joi.string().optional(),
   totalMember: Joi.number().min(0).optional(),
   totalAmount: Joi.number().min(0).optional(),
+  isPrint: Joi.boolean().optional(),
 });
 
 export const updateCardStatusSchema = Joi.object({

@@ -14,9 +14,9 @@ class CardController {
         createdBy: req.user.userId,
       };
 
-      // Handle uploaded documents
-      if (req.files && req.files.length > 0) {
-        cardData.documents = req.files.map((file) => ({
+      // Handle uploaded documents (multer fields structure)
+      if (req.files && req.files.documents && req.files.documents.length > 0) {
+        cardData.documents = req.files.documents.map((file) => ({
           filename: file.filename,
           originalName: file.originalname,
           path: file.path,

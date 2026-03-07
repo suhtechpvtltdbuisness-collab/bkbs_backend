@@ -158,9 +158,14 @@ class CardService {
    * Update card
    */
   async updateCard(id, updateData) {
-    // Prevent updating certain fields
-    delete updateData.applicationId;
-    delete updateData.createdBy;
+    // Check if user is trying to update restricted fields
+    if (updateData.applicationId) {
+      throw new ApiError(400, "Application ID cannot be updated");
+    }
+
+    if (updateData.createdBy) {
+      throw new ApiError(400, "Created by cannot be updated");
+    }
 
     const card = await cardRepository.updateById(id, updateData);
 

@@ -50,8 +50,10 @@ const findAndCleanupDuplicates = async () => {
     ]);
 
     if (duplicateContacts.length > 0) {
-      console.log(`\n⚠️  Found ${duplicateContacts.length} duplicate contact numbers:\n`);
-      
+      console.log(
+        `\n⚠️  Found ${duplicateContacts.length} duplicate contact numbers:\n`,
+      );
+
       for (const dup of duplicateContacts) {
         console.log(`📞 Contact: ${dup._id} (${dup.count} cards)`);
         dup.cards.forEach((card, index) => {
@@ -62,7 +64,9 @@ const findAndCleanupDuplicates = async () => {
         console.log("");
       }
 
-      console.log("🗑️  Keeping the oldest card for each duplicate, marking others as deleted...\n");
+      console.log(
+        "🗑️  Keeping the oldest card for each duplicate, marking others as deleted...\n",
+      );
 
       for (const dup of duplicateContacts) {
         // Sort by createdAt, keep the oldest one
@@ -117,7 +121,9 @@ const findAndCleanupDuplicates = async () => {
     ]);
 
     if (duplicateNames.length > 0) {
-      console.log(`\n⚠️  Found ${duplicateNames.length} duplicate name combinations:\n`);
+      console.log(
+        `\n⚠️  Found ${duplicateNames.length} duplicate name combinations:\n`,
+      );
 
       for (const dup of duplicateNames) {
         console.log(
@@ -131,7 +137,9 @@ const findAndCleanupDuplicates = async () => {
         console.log("");
       }
 
-      console.log("🗑️  Keeping the oldest card for each duplicate, marking others as deleted...\n");
+      console.log(
+        "🗑️  Keeping the oldest card for each duplicate, marking others as deleted...\n",
+      );
 
       for (const dup of duplicateNames) {
         // Sort by createdAt, keep the oldest one
@@ -160,7 +168,9 @@ const findAndCleanupDuplicates = async () => {
     }
 
     console.log("\n✅ Duplicate cleanup completed!");
-    console.log("ℹ️  You can now run the index migration: node src/migrations/005_add_card_unique_indexes.js");
+    console.log(
+      "ℹ️  You can now run the index migration: node src/migrations/005_add_card_unique_indexes.js",
+    );
   } catch (error) {
     console.error("❌ Cleanup failed:", error);
     throw error;
