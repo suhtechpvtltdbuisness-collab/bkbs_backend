@@ -140,19 +140,18 @@ class UserService {
       throw new ApiError(409, "User with this email already exists");
     }
 
-    // Generate employeeId if not provided
-    if (!userData.employeeId) {
-      userData.employeeId = await generateEmployeeId();
-    }
+    // Always generate unique employeeId automatically
+    userData.employeeId = await generateEmployeeId();
 
-    // Check if employeeId already exists
-    if (userData.employeeId) {
-      const existingEmployeeId = await userRepository.findByEmployeeId(
-        userData.employeeId,
+    // Safety check: verify generated employeeId is unique
+    const existingEmployeeId = await userRepository.findByEmployeeId(
+      userData.employeeId,
+    );
+    if (existingEmployeeId) {
+      throw new ApiError(
+        409,
+        "Employee ID generation conflict. Please try again.",
       );
-      if (existingEmployeeId) {
-        throw new ApiError(409, "Employee ID already exists");
-      }
     }
 
     // Start a MongoDB session for transaction

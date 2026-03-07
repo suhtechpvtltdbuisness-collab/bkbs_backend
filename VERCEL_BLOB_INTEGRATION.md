@@ -75,7 +75,7 @@ Fields:
 - middleName: string
 - lastName: string
 - contact: string
-- documents: file[] (max 5 files, 5MB each)
+- documents: file[] (max 5 files, 100KB each)
 - members: JSON string
 ```
 
@@ -207,7 +207,7 @@ const { blobs } = await list({ token: process.env.BLOB_READ_WRITE_TOKEN });
 To stay within free tier limits:
 
 - Compress images before upload (client-side)
-- Set reasonable file size limits (currently 5MB)
+- Set reasonable file size limits (currently 100KB)
 - Implement file cleanup for old/deleted cards
 - Monitor usage in Vercel dashboard
 

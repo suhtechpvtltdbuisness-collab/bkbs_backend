@@ -175,7 +175,7 @@ Verify `documents` array contains Vercel Blob URLs.
 
 **Current Limits:**
 
-- Max file size: 5 MB per file
+- Max file size: 100 KB per file
 - Max files per upload: 5 files
 - Vercel function payload limit: 4.5 MB
 

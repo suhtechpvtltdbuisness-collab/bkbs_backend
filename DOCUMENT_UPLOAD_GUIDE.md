@@ -10,7 +10,7 @@ Cards now support document uploads with automatic yearly folder organization. Yo
 
 - ✅ Multiple file uploads (max 5 files)
 - ✅ Automatic yearly folder organization (`uploads/YYYY/` locally, `YYYY/` in cloud)
-- ✅ File size limit: 5MB per file
+- ✅ File size limit: 100KB per file
 - ✅ Supported file types: JPEG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX
 - ✅ Automatic sanitization of filenames
 - ✅ Secure file storage
@@ -213,7 +213,7 @@ Uploaded files are accessible via HTTP:
 ## Validation Rules
 
 - Maximum 5 files per card
-- Maximum 5MB per file
+- Maximum 100KB per file
 - Only allowed file types accepted
 - Filenames are automatically sanitized (special characters replaced with underscores)
 - Unique filenames generated using timestamp and random suffix
