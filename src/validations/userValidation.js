@@ -94,9 +94,53 @@ export const updateUserStatusSchema = Joi.object({
   }),
 });
 
+export const updateEmployeeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).messages({
+    "string.min": "Name must be at least 2 characters long",
+    "string.max": "Name cannot exceed 100 characters",
+  }),
+
+  email: Joi.string().email().messages({
+    "string.email": "Please provide a valid email address",
+  }),
+
+  contact: Joi.string()
+    .pattern(/^[0-9+\-() ]+$/)
+    .messages({
+      "string.pattern.base": "Invalid contact number format",
+    }),
+
+  dateOfJoining: Joi.string(),
+
+  location: Joi.string().max(100).messages({
+    "string.max": "Location cannot exceed 100 characters",
+  }),
+
+  salary: Joi.number().positive().messages({
+    "number.positive": "Salary must be a positive number",
+  }),
+
+  workStartTime: Joi.string()
+    .pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .messages({
+      "string.pattern.base": "Work start time must be in HH:MM format",
+    }),
+
+  workEndTime: Joi.string()
+    .pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .messages({
+      "string.pattern.base": "Work end time must be in HH:MM format",
+    }),
+})
+  .min(1)
+  .messages({
+    "object.min": "At least one field is required for update",
+  });
+
 export default {
   updateProfileSchema,
   updateUserRoleSchema,
   updateUserStatusSchema,
   createUserSchema,
+  updateEmployeeSchema,
 };

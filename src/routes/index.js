@@ -5,7 +5,8 @@ import userRoutes from "./userRoutes.js";
 import cardRoutes from "./cardRoutes.js";
 import cardMemberRoutes from "./cardMemberRoutes.js";
 import hospitalRoutes from "./hospitalRoutes.js";
-import partnerRoutes from "./partnerRoutes.js";
+import organizationRoutes from "./organizationRoutes.js";
+import doctorRoutes from "./doctorRoutes.js";
 
 const router = express.Router();
 
@@ -58,6 +59,7 @@ router.use("/users", userRoutes);
 router.use("/cards", cardRoutes);
 router.use("/card-members", cardMemberRoutes);
 router.use("/hospitals", hospitalRoutes);
-router.use("/partners", partnerRoutes);
+router.use("/organizations", organizationRoutes);
+router.use("/doctors", doctorRoutes);
 
 export default router;

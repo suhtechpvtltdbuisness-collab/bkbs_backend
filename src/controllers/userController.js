@@ -99,6 +99,17 @@ export const updateUserRole = asyncHandler(async (req, res) => {
   successResponse(res, 200, "User role updated successfully", { user });
 });
 
+/**
+ * @desc    Update employee details
+ * @route   PUT /api/users/employee/:userId
+ * @access  Private (Admin only)
+ */
+export const updateEmployee = asyncHandler(async (req, res) => {
+  const user = await userService.updateEmployee(req.params.userId, req.body);
+
+  successResponse(res, 200, "Employee updated successfully", { user });
+});
+
 export default {
   createUser,
   getProfile,
@@ -108,4 +119,5 @@ export default {
   deleteUser,
   updateUserStatus,
   updateUserRole,
+  updateEmployee,
 };

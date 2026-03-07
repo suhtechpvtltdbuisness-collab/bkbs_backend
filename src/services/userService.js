@@ -51,6 +51,64 @@ class UserService {
   }
 
   /**
+   * Update employee details (Admin only)
+   */
+  async updateEmployee(userId, updateData) {
+    // Check if user exists and is employee/editor
+    const user = await userRepository.findById(userId);
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    if (!["employee", "editor"].includes(user.role)) {
+      throw new ApiError(400, "User is not an employee or editor");
+    }
+
+    // Prevent updating sensitive fields
+    delete updateData.password;
+    delete updateData.role;
+    delete updateData.employeeId;
+    delete updateData.createdBy;
+    delete updateData._id;
+
+    // Check if email is being updated and already exists
+    if (updateData.email && updateData.email !== user.email) {
+      const existingUser = await userRepository.findByEmail(updateData.email);
+      if (existingUser) {
+        throw new ApiError(409, "Email already exists");
+      }
+    }
+
+    // Allowed fields for employee update
+    const allowedUpdates = [
+      "name",
+      "email",
+      "contact",
+      "dateOfJoining",
+      "location",
+      "salary",
+      "workStartTime",
+      "workEndTime",
+    ];
+
+    const filteredData = {};
+    allowedUpdates.forEach((field) => {
+      if (updateData[field] !== undefined) {
+        filteredData[field] = updateData[field];
+      }
+    });
+
+    const updatedUser = await userRepository.updateById(userId, filteredData);
+
+    if (!updatedUser) {
+      throw new ApiError(404, "User not found");
+    }
+
+    return updatedUser;
+  }
+
+  /**
    * Get all users (Admin only)
    */
   async getAllUsers(filters, options) {

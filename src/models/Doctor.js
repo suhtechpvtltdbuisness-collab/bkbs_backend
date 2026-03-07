@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
-const partnerSchema = new mongoose.Schema(
+const doctorSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Partner name is required"],
+      required: [true, "Doctor name is required"],
       trim: true,
     },
     specialty: {
@@ -22,6 +22,11 @@ const partnerSchema = new mongoose.Schema(
     location: {
       type: String,
       trim: true,
+    },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: [true, "Organization ID is required"],
     },
     days: {
       type: [String],
@@ -43,6 +48,12 @@ const partnerSchema = new mongoose.Schema(
   },
 );
 
-const Partner = mongoose.model("Partner", partnerSchema);
+// Indexes
+doctorSchema.index({ organizationId: 1 });
+doctorSchema.index({ isDeleted: 1 });
+doctorSchema.index({ createdBy: 1 });
+doctorSchema.index({ name: 1 });
 
-export default Partner;
+const Doctor = mongoose.model("Doctor", doctorSchema);
+
+export default Doctor;

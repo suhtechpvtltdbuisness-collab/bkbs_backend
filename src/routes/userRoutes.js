@@ -7,6 +7,7 @@ import {
   updateUserRoleSchema,
   updateUserStatusSchema,
   createUserSchema,
+  updateEmployeeSchema,
 } from "../validations/userValidation.js";
 
 const router = express.Router();
@@ -60,6 +61,15 @@ router.patch(
   authorize("admin"),
   validate(updateUserRoleSchema),
   userController.updateUserRole,
+);
+
+// Update employee details (Admin only)
+router.put(
+  "/employee/:userId",
+  authenticate,
+  authorize("admin"),
+  validate(updateEmployeeSchema),
+  userController.updateEmployee,
 );
 
 export default router;
