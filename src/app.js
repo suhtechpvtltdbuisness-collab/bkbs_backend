@@ -47,6 +47,9 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Cookie parser
 app.use(cookieParser());
 
+// Serve uploaded files statically
+app.use("/uploads", express.static("uploads"));
+
 // Rate limiting
 app.use("/api", generalLimiter);
 

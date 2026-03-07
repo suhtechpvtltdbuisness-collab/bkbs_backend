@@ -2,6 +2,7 @@ import express from "express";
 import cardController from "../controllers/cardController.js";
 import { authenticate, authorize } from "../middlewares/auth.js";
 import validate from "../middlewares/validate.js";
+import { uploadCardDocuments } from "../middlewares/upload.js";
 import {
   createCardSchema,
   updateCardSchema,
@@ -24,6 +25,7 @@ router.get("/:id/with-members", cardController.getCardWithMembers);
 router.post(
   "/",
   authorize("admin", "employee", "editor"),
+  uploadCardDocuments,
   validate(createCardSchema),
   cardController.createCard,
 );

@@ -24,6 +24,19 @@ export const createCardSchema = Joi.object({
   verificationDate: Joi.string().optional(),
   totalMember: Joi.number().min(0).optional(),
   totalAmount: Joi.number().min(0).optional(),
+  documents: Joi.array()
+    .items(
+      Joi.object({
+        filename: Joi.string().optional(),
+        originalName: Joi.string().optional(),
+        path: Joi.string().optional(),
+        size: Joi.number().optional(),
+        mimetype: Joi.string().optional(),
+        uploadedAt: Joi.date().optional(),
+      }),
+    )
+    .max(5)
+    .optional(),
   members: Joi.array()
     .items(
       Joi.object({

@@ -96,6 +96,22 @@ class CardRepository {
       },
     };
   }
+
+  async findByName(firstName, middleName, lastName) {
+    return await Card.findOne({
+      firstName,
+      middleName: middleName || "",
+      lastName: lastName || "",
+      isDeleted: false,
+    });
+  }
+
+  async findByContact(contact) {
+    return await Card.findOne({
+      contact,
+      isDeleted: false,
+    });
+  }
 }
 
 export default new CardRepository();

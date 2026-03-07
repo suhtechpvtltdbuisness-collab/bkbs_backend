@@ -14,6 +14,28 @@ class CardController {
         createdBy: req.user.userId,
       };
 
+      // Handle uploaded documents
+      if (req.files && req.files.length > 0) {
+        cardData.documents = req.files.map((file) => ({
+          filename: file.filename,
+          originalName: file.originalname,
+          path: file.path,
+          size: file.size,
+          mimetype: file.mimetype,
+          uploadedAt: new Date(),
+        }));
+      }
+
+      // Parse members if it's a string (from multipart/form-data)
+      if (typeof cardData.members === "string") {
+        try {
+          cardData.members = JSON.parse(cardData.members);
+        } catch (error) {
+          // If parsing fails, ignore members
+          delete cardData.members;
+        }
+      }
+
       const card = await cardService.createCard(cardData, req.user.role);
 
       res

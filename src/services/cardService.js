@@ -27,19 +27,34 @@ class CardService {
     // Extract members array from cardData
     const { members, ...cardInfo } = cardData;
 
-    // Generate applicationId if not provided
-    if (!cardInfo.applicationId) {
-      cardInfo.applicationId = await generateApplicationId();
-    }
-
-    // Check if application ID already exists
-    const existingCard = await cardRepository.findByApplicationId(
-      cardInfo.applicationId,
+    // Check if card already exists with same name (firstName + middleName + lastName)
+    const existingCardByName = await cardRepository.findByName(
+      cardInfo.firstName,
+      cardInfo.middleName || "",
+      cardInfo.lastName || "",
     );
 
-    if (existingCard) {
-      throw new ApiError(409, "Application ID already exists");
+    if (existingCardByName) {
+      throw new ApiError(
+        409,
+        `Card already exists for ${cardInfo.firstName} ${cardInfo.middleName || ""} ${cardInfo.lastName || ""}`.trim(),
+      );
     }
+
+    // Check if phone number is already registered
+    const existingCardByContact = await cardRepository.findByContact(
+      cardInfo.contact,
+    );
+
+    if (existingCardByContact) {
+      throw new ApiError(
+        409,
+        `Phone number ${cardInfo.contact} is already registered`,
+      );
+    }
+
+    // Always auto-generate applicationId to ensure uniqueness
+    cardInfo.applicationId = await generateApplicationId();
 
     // If members array is provided, use transaction to create card and members atomically
     if (members && Array.isArray(members) && members.length > 0) {

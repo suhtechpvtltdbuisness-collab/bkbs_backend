@@ -67,6 +67,29 @@ const cardSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    documents: [
+      {
+        filename: {
+          type: String,
+        },
+        originalName: {
+          type: String,
+        },
+        path: {
+          type: String,
+        },
+        size: {
+          type: Number,
+        },
+        mimetype: {
+          type: String,
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -79,6 +102,23 @@ const cardSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  },
+);
+
+// Indexes - Only apply to non-deleted cards
+cardSchema.index(
+  { contact: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isDeleted: false },
+  },
+);
+
+cardSchema.index(
+  { firstName: 1, middleName: 1, lastName: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isDeleted: false },
   },
 );
 
