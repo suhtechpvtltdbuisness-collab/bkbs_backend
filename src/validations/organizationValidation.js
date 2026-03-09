@@ -30,12 +30,9 @@ export const createOrganizationSchema = Joi.object({
     "string.max": "Partner ID cannot exceed 100 characters",
   }),
 
-  establishedYear: Joi.string()
-    .trim()
-    .pattern(/^\d{4}$/)
-    .messages({
-      "string.pattern.base": "Established year must be a 4-digit year",
-    }),
+  establishedYear: Joi.date().iso().required().messages({
+    "date.format": "Date must be in ISO format (YYYY-MM-DD)",
+  }),
 
   bed: Joi.number().integer().min(0).messages({
     "number.min": "Number of beds must be at least 0",
