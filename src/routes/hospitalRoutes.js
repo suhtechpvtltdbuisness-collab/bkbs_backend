@@ -27,11 +27,15 @@ router.post(
 
 router.put(
   "/:id",
-  authorize("admin"),
+  authorize("admin", "editor", "employee"),
   validate(updateHospitalSchema),
   hospitalController.updateHospital,
 );
 
-router.delete("/:id", authorize("admin"), hospitalController.deleteHospital);
+router.delete(
+  "/:id",
+  authorize("admin", "editor", "employee"),
+  hospitalController.deleteHospital,
+);
 
 export default router;

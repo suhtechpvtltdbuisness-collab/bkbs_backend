@@ -14,7 +14,8 @@
     "build": "echo 'No build step required'",
     "vercel-build": "echo 'Vercel build complete'",
     "migrate": "node src/migrations/runner.js up",
-    "migrate:down": "node src/migrations/runner.js down"
+    "migrate:down": "node src/migrations/runner.js down",
+    "seed:admin": "node scripts/seedAdmin.js"
   },
   "keywords": [
     "express",

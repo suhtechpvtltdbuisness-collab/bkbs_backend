@@ -42,7 +42,6 @@ class HospitalService {
    */
   async updateHospital(id, updateData) {
     // Prevent updating createdBy
-    delete updateData.createdBy;
 
     const hospital = await hospitalRepository.updateById(id, updateData);
 
