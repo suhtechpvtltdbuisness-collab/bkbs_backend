@@ -115,6 +115,8 @@ class CardController {
 
   /**
    * Get all cards
+   * Admin: sees all cards
+   * Employee/Editor: sees only cards created by them
    */
   async getAllCards(req, res, next) {
     try {
@@ -124,6 +126,12 @@ class CardController {
       // Apply filters
       if (req.query.status) {
         filters.status = req.query.status;
+      }
+
+      // Role-based filtering
+      // If user is not admin, only show cards they created
+      if (req.user.role !== "admin") {
+        filters.createdBy = req.user.userId;
       }
 
       const result = await cardService.getAllCards(filters, { page, limit });
