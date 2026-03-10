@@ -41,7 +41,32 @@ class UserRepository {
   }
 
   async findByEmployeeId(employeeId) {
-    return await User.findOne({ employeeId }).select("+password +refreshToken");
+    console.log(
+      "UserRepository.findByEmployeeId - Starting query for:",
+      employeeId,
+    );
+    const startTime = Date.now();
+
+    try {
+      const user = await User.findOne({ employeeId }).select(
+        "+password +refreshToken",
+      );
+
+      const duration = Date.now() - startTime;
+      console.log(
+        `UserRepository.findByEmployeeId - Query completed in ${duration}ms, found:`,
+        !!user,
+      );
+
+      return user;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(
+        `UserRepository.findByEmployeeId - Query failed after ${duration}ms:`,
+        error.message,
+      );
+      throw error;
+    }
   }
 
   async findByEmailOrEmployeeId(identifier) {

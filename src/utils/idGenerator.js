@@ -29,15 +29,18 @@ import Card from "../models/Card.js";
  * Generate a unique employee ID in format: EMP-00001
  */
 export const generateEmployeeId = async () => {
+  console.log("🔄 generateEmployeeId - Starting...");
   const prefix = "EMP-";
   const padLength = 5;
 
-  // Find the last employee ID
+  // Find the last employee ID that starts with "EMP-"
+  console.log("🔍 Querying for last employee with EMP- prefix...");
   const lastUser = await User.findOne({
-    employeeId: { $exists: true, $ne: null },
+    employeeId: { $regex: /^EMP-/, $exists: true, $ne: null },
   })
-    .sort({ createdAt: -1 })
+    .sort({ employeeId: -1 })
     .select("employeeId");
+  console.log("✅ Last user query completed:", lastUser?.employeeId || "none");
 
   let nextNumber = 1;
 
@@ -51,14 +54,28 @@ export const generateEmployeeId = async () => {
 
   // Generate new ID with padding
   const newId = prefix + String(nextNumber).padStart(padLength, "0");
+  console.log("🆔 Generated ID:", newId);
 
   // Check if ID already exists (safety check)
+  console.log("🔍 Checking if ID exists...");
   const exists = await User.exists({ employeeId: newId });
+  console.log("✅ ID exists check completed:", !!exists);
+
   if (exists) {
-    // If exists, try next number
+    // If exists, try next number recursively
+    console.log("⚠️ ID collision, incrementing and trying again...");
+    nextNumber++;
+    const retryId = prefix + String(nextNumber).padStart(padLength, "0");
+    const retryExists = await User.exists({ employeeId: retryId });
+    if (!retryExists) {
+      console.log("✅ generateEmployeeId - Completed with:", retryId);
+      return retryId;
+    }
+    // If still exists, recursive call
     return generateEmployeeId();
   }
 
+  console.log("✅ generateEmployeeId - Completed");
   return newId;
 };
 

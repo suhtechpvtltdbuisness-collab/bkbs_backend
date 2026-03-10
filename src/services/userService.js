@@ -193,15 +193,20 @@ class UserService {
     }
 
     // Check if email already exists
+    console.log("🔍 Checking if email exists:", userData.email);
     const existingUser = await userRepository.findByEmail(userData.email);
     if (existingUser) {
       throw new ApiError(409, "User with this email already exists");
     }
+    console.log("✅ Email is unique");
 
     // Always generate unique employeeId automatically
+    console.log("🔄 Generating employee ID...");
     userData.employeeId = await generateEmployeeId();
+    console.log("✅ Generated employee ID:", userData.employeeId);
 
     // Safety check: verify generated employeeId is unique
+    console.log("🔍 Verifying employee ID uniqueness...");
     const existingEmployeeId = await userRepository.findByEmployeeId(
       userData.employeeId,
     );
@@ -211,6 +216,7 @@ class UserService {
         "Employee ID generation conflict. Please try again.",
       );
     }
+    console.log("✅ Employee ID is unique");
 
     // Start a MongoDB session for transaction
     const session = await mongoose.startSession();
