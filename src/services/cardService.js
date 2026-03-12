@@ -171,7 +171,13 @@ class CardService {
       throw new ApiError(404, "Card not found");
     }
 
-    return card;
+    // Get card members without cardId population for cleaner response
+    const members = await cardMemberRepository.findByCardIdSimple(card._id);
+
+    return {
+      ...card.toObject(),
+      members,
+    };
   }
 
   /**

@@ -15,7 +15,7 @@ class CardRepository {
   }
 
   async findByCardNo(cardNo) {
-    return await Card.findOne({ cardNo }).populate("createdBy");
+    return await Card.findOne({ applicationId: cardNo });
   }
 
   async findAll(filters = {}, options = {}) {

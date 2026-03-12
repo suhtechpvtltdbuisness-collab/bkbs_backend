@@ -20,6 +20,12 @@ class CardMemberRepository {
     );
   }
 
+  async findByCardIdSimple(cardId) {
+    return await CardMember.find({ cardId, isDeleted: false }).select(
+      "-cardId",
+    );
+  }
+
   async findAll(filters = {}, options = {}) {
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
 
