@@ -9,6 +9,7 @@ import organizationRoutes from "./organizationRoutes.js";
 import doctorRoutes from "./doctorRoutes.js";
 import salaryRoutes from "./salaryRoutes.js";
 import paymentRoutes from "./paymentRoutes.js";
+import donationRoutes from "./donationRoutes.js";
 
 const router = express.Router();
 
@@ -65,5 +66,6 @@ router.use("/organizations", organizationRoutes);
 router.use("/doctors", doctorRoutes);
 router.use("/salaries", salaryRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/donations", donationRoutes);
 
 export default router;

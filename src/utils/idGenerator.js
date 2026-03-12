@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import User from "../models/User.js";
 import Card from "../models/Card.js";
+import Donation from "../models/Donation.js";
 
 /**
  * ID Generator Utility
@@ -189,10 +190,48 @@ export const generateUniqueId = (prefix = "", length = 8) => {
   return `${prefix}${timestamp}-${randomPart}`;
 };
 
+/**
+ * Generate a unique enquiry ID in format: ENQ-0000000001
+ */
+export const generateEnquiryId = async () => {
+  const prefix = "ENQ-";
+  const padLength = 10;
+
+  // Find the last enquiry ID
+  const lastDonation = await Donation.findOne({
+    enquiryId: { $exists: true, $ne: null },
+  })
+    .sort({ createdAt: -1 })
+    .select("enquiryId");
+
+  let nextNumber = 1;
+
+  if (lastDonation && lastDonation.enquiryId) {
+    // Extract number from the last enquiry ID
+    const lastNumber = parseInt(lastDonation.enquiryId.replace(prefix, ""), 10);
+    if (!isNaN(lastNumber)) {
+      nextNumber = lastNumber + 1;
+    }
+  }
+
+  // Generate new ID with padding
+  const newId = prefix + String(nextNumber).padStart(padLength, "0");
+
+  // Check if ID already exists (safety check)
+  const exists = await Donation.exists({ enquiryId: newId });
+  if (exists) {
+    // If exists, try next number
+    return generateEnquiryId();
+  }
+
+  return newId;
+};
+
 export default {
   generateEmployeeId,
   generateApplicationId,
   generateApplicationIdHex,
   generateCardNumber,
   generateUniqueId,
+  generateEnquiryId,
 };
