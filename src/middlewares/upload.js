@@ -72,7 +72,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 100 * 1024, // 100KB per file
+    fileSize: 1 * 1024 * 1024, // 1MB per file
   },
 });
 
@@ -82,7 +82,7 @@ const upload = multer({
  * Also accepts other form fields
  */
 export const uploadCardDocuments = upload.fields([
-  { name: "documents", maxCount: 5 },
+  { name: "documents", maxCount: 9 },
 ]);
 
 /**
