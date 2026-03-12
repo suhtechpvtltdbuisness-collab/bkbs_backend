@@ -57,6 +57,17 @@ class CardService {
     // Always auto-generate applicationId to ensure uniqueness
     cardInfo.applicationId = await generateApplicationId();
 
+    // Set default dates if not provided
+    const today = new Date().toISOString().split("T")[0];
+    if (!cardInfo.cardIssueDate) {
+      cardInfo.cardIssueDate = today;
+    }
+    if (!cardInfo.cardExpiredDate) {
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      cardInfo.cardExpiredDate = oneYearFromNow.toISOString().split("T")[0];
+    }
+
     // If members or payment data is provided, use transaction to create atomically
     if ((members && Array.isArray(members) && members.length > 0) || payment) {
       const session = await mongoose.startSession();
