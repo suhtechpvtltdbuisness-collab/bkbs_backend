@@ -18,6 +18,8 @@ export const createCardSchema = Joi.object({
   email: Joi.string().email().optional().allow("").messages({
     "string.email": "Please provide a valid email address",
   }),
+  relation: Joi.string().optional().allow(""),
+  relatedPerson: Joi.string().optional().allow(""),
   cardNo: Joi.string().optional(),
   cardIssueDate: Joi.string().optional(),
   cardExpiredDate: Joi.string().optional(),
@@ -54,6 +56,22 @@ export const createCardSchema = Joi.object({
       }),
     )
     .optional(),
+  payment: Joi.object({
+    transactionId: Joi.string().trim().required().messages({
+      "string.empty": "Transaction ID is required",
+      "any.required": "Transaction ID is required",
+    }),
+    method: Joi.string().valid("online", "cash").required().messages({
+      "any.only": "Payment method must be either 'online' or 'cash'",
+      "any.required": "Payment method is required",
+    }),
+    totalAmount: Joi.number().positive().required().messages({
+      "number.base": "Total amount must be a number",
+      "number.positive": "Total amount must be positive",
+      "any.required": "Total amount is required",
+    }),
+    date: Joi.date().optional(),
+  }).optional(),
 });
 
 export const updateCardSchema = Joi.object({
@@ -69,6 +87,8 @@ export const updateCardSchema = Joi.object({
   email: Joi.string().email().optional().allow("").messages({
     "string.email": "Please provide a valid email address",
   }),
+  relation: Joi.string().optional().allow(""),
+  relatedPerson: Joi.string().optional().allow(""),
   cardNo: Joi.string().optional(),
   cardIssueDate: Joi.string().optional(),
   cardExpiredDate: Joi.string().optional(),
@@ -93,6 +113,18 @@ export const issueCardSchema = Joi.object({
   cardNo: Joi.string().optional(),
   cardIssueDate: Joi.string().optional(),
   cardExpiredDate: Joi.string().optional(),
+});
+
+export const updateIsPrintSchema = Joi.object({
+  cardIds: Joi.array()
+    .items(Joi.string().required())
+    .min(1)
+    .required()
+    .messages({
+      "array.base": "cardIds must be an array",
+      "array.min": "cardIds must contain at least one card ID",
+      "any.required": "cardIds is required",
+    }),
 });
 
 export default {

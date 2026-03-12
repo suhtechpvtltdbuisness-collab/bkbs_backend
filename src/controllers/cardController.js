@@ -65,6 +65,16 @@ class CardController {
         }
       }
 
+      // Parse payment if it's a string (from multipart/form-data)
+      if (typeof cardData.payment === "string") {
+        try {
+          cardData.payment = JSON.parse(cardData.payment);
+        } catch (error) {
+          // If parsing fails, ignore payment
+          delete cardData.payment;
+        }
+      }
+
       const card = await cardService.createCard(cardData, req.user.role);
 
       res
@@ -235,6 +245,61 @@ class CardController {
         .status(200)
         .json(
           new ApiResponse(200, stats, "Card statistics retrieved successfully"),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get card by card number (Unauthorized - public access)
+   */
+  async getCardByCardNo(req, res, next) {
+    try {
+      const card = await cardService.getCardByCardNo(req.params.cardNo);
+
+      res
+        .status(200)
+        .json(new ApiResponse(200, card, "Card retrieved successfully"));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get all verified (not printed) cards
+   */
+  async getAllVerifiedCards(req, res, next) {
+    try {
+      const { page, limit } = paginate(req.query.page, req.query.limit);
+      const result = await cardService.getAllVerifiedCards({ page, limit });
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(200, result, "Verified cards retrieved successfully"),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update isPrint status for multiple cards
+   */
+  async updateIsPrintStatus(req, res, next) {
+    try {
+      const { cardIds } = req.body;
+      const result = await cardService.updateIsPrintStatus(cardIds);
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(
+            200,
+            result,
+            "Card print status updated successfully",
+          ),
         );
     } catch (error) {
       next(error);

@@ -8,15 +8,20 @@ import {
   updateCardSchema,
   updateCardStatusSchema,
   issueCardSchema,
+  updateIsPrintSchema,
 } from "../validations/cardValidation.js";
 
 const router = express.Router();
+
+// Public routes - No authentication required
+router.get("/card/:cardNo", cardController.getCardByCardNo);
 
 // Protected routes - All card routes require authentication
 router.use(authenticate);
 
 // Card routes
 router.get("/", cardController.getAllCards);
+router.get("/verified/not-printed", cardController.getAllVerifiedCards);
 router.get("/my-cards", cardController.getMyCards);
 router.get("/stats", authorize("admin"), cardController.getCardStats);
 router.get("/:id", cardController.getCardById);
@@ -44,6 +49,13 @@ router.patch(
   authorize("admin", "employee"),
   validate(issueCardSchema),
   cardController.issueCard,
+);
+
+router.put(
+  "/print-status",
+  authorize("admin", "employee"),
+  validate(updateIsPrintSchema),
+  cardController.updateIsPrintStatus,
 );
 
 router.delete(

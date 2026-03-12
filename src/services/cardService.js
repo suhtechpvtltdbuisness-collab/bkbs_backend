@@ -8,10 +8,11 @@ import {
 } from "../utils/idGenerator.js";
 import Card from "../models/Card.js";
 import CardMember from "../models/CardMember.js";
+import Payment from "../models/Payment.js";
 
 class CardService {
   /**
-   * Create new card with optional members
+   * Create new card with optional members and payment
    * Only employee, editor, or admin roles can create cards
    */
   async createCard(cardData, userRole) {
@@ -24,8 +25,8 @@ class CardService {
       );
     }
 
-    // Extract members array from cardData
-    const { members, ...cardInfo } = cardData;
+    // Extract members array and payment data from cardData
+    const { members, payment, ...cardInfo } = cardData;
 
     // Check if card already exists with same name (firstName + middleName + lastName)
     const existingCardByName = await cardRepository.findByName(
@@ -56,37 +57,70 @@ class CardService {
     // Always auto-generate applicationId to ensure uniqueness
     cardInfo.applicationId = await generateApplicationId();
 
-    // If members array is provided, use transaction to create card and members atomically
-    if (members && Array.isArray(members) && members.length > 0) {
+    // If members or payment data is provided, use transaction to create atomically
+    if ((members && Array.isArray(members) && members.length > 0) || payment) {
       const session = await mongoose.startSession();
       session.startTransaction();
 
       try {
-        // Set totalMember count
-        cardInfo.totalMember = members.length;
+        // Set totalMember count if members provided
+        if (members && Array.isArray(members) && members.length > 0) {
+          cardInfo.totalMember = members.length;
+        }
 
         // Create card
         const [card] = await Card.create([cardInfo], { session });
 
-        // Create members with cardId reference
-        const membersWithCardId = members.map((member) => ({
-          ...member,
-          cardId: card._id,
-        }));
+        // Create members with cardId reference if provided
+        if (members && Array.isArray(members) && members.length > 0) {
+          const membersWithCardId = members.map((member) => ({
+            ...member,
+            cardId: card._id,
+          }));
 
-        await CardMember.insertMany(membersWithCardId, { session });
+          await CardMember.insertMany(membersWithCardId, { session });
+        }
+
+        // Create payment if payment data is provided
+        let paymentRecord = null;
+        if (payment) {
+          const paymentData = {
+            ...payment,
+            cardId: card._id,
+            createdBy: cardInfo.createdBy,
+            status: true, // Set status to true when payment data is provided
+          };
+
+          // Check if transaction ID already exists
+          const existingPayment = await Payment.findOne({
+            transactionId: paymentData.transactionId,
+          }).session(session);
+
+          if (existingPayment) {
+            throw new ApiError(
+              409,
+              `Payment with transaction ID ${paymentData.transactionId} already exists`,
+            );
+          }
+
+          [paymentRecord] = await Payment.create([paymentData], { session });
+        }
 
         // Commit transaction
         await session.commitTransaction();
         session.endSession();
 
-        // Return card with populated members
-        const cardWithMembers = await Card.findById(card._id);
+        // Return card with populated members and payment
+        const cardWithData = await Card.findById(card._id);
         const cardMembers = await CardMember.find({ cardId: card._id });
+        const cardPayment = paymentRecord
+          ? await Payment.findById(paymentRecord._id)
+          : null;
 
         return {
-          ...cardWithMembers.toObject(),
+          ...cardWithData.toObject(),
           members: cardMembers,
+          payment: cardPayment,
         };
       } catch (error) {
         // Rollback transaction on error
@@ -96,7 +130,7 @@ class CardService {
       }
     }
 
-    // If no members, just create card
+    // If no members and no payment, just create card
     const card = await cardRepository.create(cardInfo);
     return card;
   }
@@ -266,6 +300,52 @@ class CardService {
       approved: approvedCards,
       active: activeCards,
       expired: expiredCards,
+    };
+  }
+
+  /**
+   * Get all verified (not printed) cards
+   */
+  async getAllVerifiedCards(options = {}) {
+    const { page = 1, limit = 10 } = options;
+
+    // Query for cards where isPrint is false
+    const filters = {
+      isPrint: false,
+      status: { $in: ["approved", "active"] }, // Only approved or active cards
+    };
+
+    return await cardRepository.findAll(filters, { page, limit });
+  }
+
+  /**
+   * Update isPrint status for multiple cards
+   */
+  async updateIsPrintStatus(cardIds) {
+    if (!Array.isArray(cardIds) || cardIds.length === 0) {
+      throw new ApiError(400, "cardIds must be a non-empty array");
+    }
+
+    // Validate all cardIds exist
+    const cards = await Card.find({
+      _id: { $in: cardIds },
+      isDeleted: false,
+    });
+
+    if (cards.length !== cardIds.length) {
+      throw new ApiError(404, "One or more cards not found");
+    }
+
+    // Update all cards to isPrint: true
+    const result = await Card.updateMany(
+      { _id: { $in: cardIds }, isDeleted: false },
+      { $set: { isPrint: true } },
+    );
+
+    return {
+      success: true,
+      updated: result.modifiedCount,
+      message: `${result.modifiedCount} card(s) marked as printed`,
     };
   }
 }
