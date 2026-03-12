@@ -17,7 +17,7 @@ class CardService {
    */
   async createCard(cardData, userRole) {
     // Check if user has permission to create card
-    const allowedRoles = ["employee", "editor", "admin"];
+    const allowedRoles = ["employee", "editor", "admin", "public"];
     if (!allowedRoles.includes(userRole)) {
       throw new ApiError(
         403,

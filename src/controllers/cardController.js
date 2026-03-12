@@ -305,6 +305,89 @@ class CardController {
       next(error);
     }
   }
+
+  /**
+   * Create new card (Public - No authentication required)
+   * Sets createdBy to -1 for public submissions
+   */
+  async createCardPublic(req, res, next) {
+    try {
+      const cardData = {
+        ...req.body,
+        createdBy: "-1",
+      };
+
+      // Handle uploaded documents
+      if (req.files && req.files.documents && req.files.documents.length > 0) {
+        const useVercelBlob =
+          process.env.BLOB_READ_WRITE_TOKEN &&
+          (process.env.VERCEL || process.env.NODE_ENV === "production");
+
+        if (useVercelBlob) {
+          // Upload to Vercel Blob (production/serverless)
+          try {
+            cardData.documents = await uploadToVercelBlob(req.files.documents);
+          } catch (error) {
+            console.error("Vercel Blob upload error:", error);
+            throw new Error("Failed to upload documents to cloud storage");
+          }
+        } else {
+          // Local file storage (development)
+          cardData.documents = req.files.documents.map((file) => {
+            // Extract relative path for URL access
+            let relativePath = file.path;
+
+            if (relativePath.startsWith("/tmp/uploads/")) {
+              relativePath = relativePath.replace("/tmp/uploads/", "/uploads/");
+            } else if (relativePath.includes("/uploads/")) {
+              relativePath = relativePath.substring(
+                relativePath.indexOf("/uploads/"),
+              );
+            }
+
+            return {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: relativePath,
+              size: file.size,
+              mimetype: file.mimetype,
+              uploadedAt: new Date(),
+            };
+          });
+        }
+      }
+
+      // Parse members if it's a string (from multipart/form-data)
+      if (typeof cardData.members === "string") {
+        try {
+          cardData.members = JSON.parse(cardData.members);
+        } catch (error) {
+          // If parsing fails, ignore members
+          delete cardData.members;
+        }
+      }
+
+      // Parse payment if it's a string (from multipart/form-data)
+      if (typeof cardData.payment === "string") {
+        try {
+          cardData.payment = JSON.parse(cardData.payment);
+        } catch (error) {
+          // If parsing fails, ignore payment
+          delete cardData.payment;
+        }
+      }
+
+      const card = await cardService.createCard(cardData, "public");
+
+      res
+        .status(201)
+        .json(
+          new ApiResponse(201, card, "Card application created successfully"),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new CardController();

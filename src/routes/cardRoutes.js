@@ -15,6 +15,12 @@ const router = express.Router();
 
 // Public routes - No authentication required
 router.get("/card/:cardNo", cardController.getCardByCardNo);
+router.post(
+  "/card-users",
+  uploadCardDocuments,
+  validate(createCardSchema),
+  cardController.createCardPublic,
+);
 
 // Protected routes - All card routes require authentication
 router.use(authenticate);

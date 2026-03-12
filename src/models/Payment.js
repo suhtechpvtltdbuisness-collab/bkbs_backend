@@ -27,8 +27,7 @@ const paymentSchema = new mongoose.Schema(
       min: [0, "Amount must be positive"],
     },
     createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: mongoose.Schema.Types.Mixed,
       required: [true, "Created by is required"],
     },
     status: {
