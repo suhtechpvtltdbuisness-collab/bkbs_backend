@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Test</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --text: #1d2433;
+        --muted: #5f6b85;
+        --accent: #0b6bcb;
+        --border: #dce2f0;
+        --ok: #1f8f4e;
+        --err: #b32727;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 10% 10%, #eaf5ff 0, transparent 35%),
+          radial-gradient(circle at 90% 15%, #fcefdc 0, transparent 32%),
+          var(--bg);
+      }
+
+      .wrap {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 16px;
+      }
+
+      .head {
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 28px;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 8px 22px rgba(21, 37, 63, 0.06);
+      }
+
+      h2 {
+        margin: 4px 0 12px;
+        font-size: 18px;
+      }
+
+      label {
+        display: block;
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input {
+        width: 100%;
+        margin-top: 6px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      button {
+        margin-top: 14px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        padding: 10px 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .mono {
+        width: 100%;
+        min-height: 210px;
+        margin-top: 14px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #0e1320;
+        color: #d6def1;
+        padding: 12px;
+        font-family: Consolas, Menlo, Monaco, monospace;
+        font-size: 12px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .status {
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .ok {
+        color: var(--ok);
+      }
+
+      .err {
+        color: var(--err);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="head">
+        <h1>Payment Service Test</h1>
+        <p class="sub">Quick manual tester for create-order and verify APIs</p>
+      </section>
+
+      <section class="card">
+        <label for="baseUrl">API base URL</label>
+        <input
+          id="baseUrl"
+          value="http://localhost:3000/api/payments"
+          placeholder="http://localhost:3000/api/payments"
+        />
+      </section>
+
+      <section class="grid" style="margin-top: 16px">
+        <article class="card">
+          <h2>Create Order</h2>
+
+          <label for="amount">Amount</label>
+          <input id="amount" type="number" value="500" />
+
+          <label for="customerId">Customer ID</label>
+          <input id="customerId" value="cust_1001" />
+
+          <label for="customerName">Customer Name</label>
+          <input id="customerName" value="Test User" />
+
+          <label for="customerEmail">Customer Email</label>
+          <input id="customerEmail" type="email" value="test@example.com" />
+
+          <label for="customerPhone">Customer Phone</label>
+          <input id="customerPhone" value="9999999999" />
+
+          <button id="createBtn">Create Order</button>
+          <div id="createStatus" class="status"></div>
+          <pre id="createOutput" class="mono">Waiting for request...</pre>
+        </article>
+
+        <article class="card">
+          <h2>Verify Order</h2>
+
+          <label for="orderId">Order ID</label>
+          <input id="orderId" placeholder="order_123456789" />
+
+          <button id="verifyBtn">Verify Order</button>
+          <div id="verifyStatus" class="status"></div>
+          <pre id="verifyOutput" class="mono">Waiting for request...</pre>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const baseUrlEl = document.getElementById("baseUrl");
+
+      const createBtn = document.getElementById("createBtn");
+      const createStatus = document.getElementById("createStatus");
+      const createOutput = document.getElementById("createOutput");
+
+      const verifyBtn = document.getElementById("verifyBtn");
+      const verifyStatus = document.getElementById("verifyStatus");
+      const verifyOutput = document.getElementById("verifyOutput");
+
+      const orderIdEl = document.getElementById("orderId");
+
+      function setStatus(el, ok, text) {
+        el.className = "status " + (ok ? "ok" : "err");
+        el.textContent = text;
+      }
+
+      async function parseJsonSafe(response) {
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { raw: text };
+        }
+      }
+
+      createBtn.addEventListener("click", async () => {
+        createBtn.disabled = true;
+        setStatus(createStatus, true, "Creating order...");
+
+        const payload = {
+          amount: Number(document.getElementById("amount").value),
+          customerId: document.getElementById("customerId").value.trim(),
+          customerName: document.getElementById("customerName").value.trim(),
+          customerEmail: document.getElementById("customerEmail").value.trim(),
+          customerPhone: document.getElementById("customerPhone").value.trim(),
+        };
+
+        try {
+          const url = baseUrlEl.value.replace(/\/$/, "") + "/create-order";
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await parseJsonSafe(response);
+          createOutput.textContent = JSON.stringify(data, null, 2);
+
+          if (!response.ok) {
+            setStatus(createStatus, false, `Failed (${response.status})`);
+            return;
+          }
+
+          const receivedOrderId = data?.data?.orderId || data?.orderId;
+          if (receivedOrderId) {
+            orderIdEl.value = receivedOrderId;
+          }
+
+          setStatus(createStatus, true, `Success (${response.status})`);
+        } catch (error) {
+          createOutput.textContent = String(error);
+          setStatus(createStatus, false, "Request failed");
+        } finally {
+          createBtn.disabled = false;
+        }
+      });
+
+      verifyBtn.addEventListener("click", async () => {
+        const orderId = orderIdEl.value.trim();
+        if (!orderId) {
+          setStatus(verifyStatus, false, "Order ID is required");
+          return;
+        }
+
+        verifyBtn.disabled = true;
+        setStatus(verifyStatus, true, "Verifying order...");
+
+        try {
+          const url =
+            baseUrlEl.value.replace(/\/$/, "") +
+            "/verify/" +
+            encodeURIComponent(orderId);
+
+          const response = await fetch(url);
+          const data = await parseJsonSafe(response);
+
+          verifyOutput.textContent = JSON.stringify(data, null, 2);
+
+          if (!response.ok) {
+            setStatus(verifyStatus, false, `Failed (${response.status})`);
+            return;
+          }
+
+          setStatus(verifyStatus, true, `Success (${response.status})`);
+        } catch (error) {
+          verifyOutput.textContent = String(error);
+          setStatus(verifyStatus, false, "Request failed");
+        } finally {
+          verifyBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
