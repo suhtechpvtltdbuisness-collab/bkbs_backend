@@ -132,9 +132,17 @@ class UserService {
    * Delete user (Admin only)
    */
   async deleteUser(userId) {
-    const user = await userRepository.deleteById(userId);
-
+    const user = await userRepository.findById(userId);
     if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    if (user.role === "admin") {
+      throw new ApiError(403, "Cannot delete admin users");
+    }
+
+    const deletedUser = await userRepository.deleteById(userId);
+
+    if (!deletedUser) {
       throw new ApiError(404, "User not found");
     }
 
