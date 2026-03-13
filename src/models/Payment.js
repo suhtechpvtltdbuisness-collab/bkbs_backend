@@ -2,52 +2,77 @@ import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
   {
+    orderId: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
     transactionId: {
       type: String,
-      required: [true, "Transaction ID is required"],
       unique: true,
+      sparse: true,
       trim: true,
       index: true,
     },
     cardId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Card",
-      required: [true, "Card ID is required"],
       index: true,
     },
-    method: {
+    paymentMethod: {
       type: String,
       required: [true, "Payment method is required"],
-      enum: ["online", "cash"],
+      enum: ["online", "cash", "upi", "card", "netbanking", "wallet"],
       trim: true,
     },
-    totalAmount: {
+    amount: {
       type: Number,
       required: [true, "Total amount is required"],
       min: [0, "Amount must be positive"],
     },
     createdBy: {
       type: mongoose.Schema.Types.Mixed,
-      required: [true, "Created by is required"],
     },
     status: {
-      type: Boolean,
-      default: false,
-    },
-    date: {
-      type: Date,
-      default: Date.now,
-      required: [true, "Payment date is required"],
+      type: String,
+      enum: ["PENDING", "SUCCESS", "FAILED"],
+      default: "PENDING",
     },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
 );
 
+paymentSchema
+  .virtual("method")
+  .get(function getMethod() {
+    return this.paymentMethod;
+  })
+  .set(function setMethod(value) {
+    this.paymentMethod = value;
+  });
+
+paymentSchema
+  .virtual("totalAmount")
+  .get(function getTotalAmount() {
+    return this.amount;
+  })
+  .set(function setTotalAmount(value) {
+    this.amount = value;
+  });
+
+paymentSchema.virtual("date").get(function getDate() {
+  return this.createdAt;
+});
+
 // Index for composite queries
-paymentSchema.index({ cardId: 1, transactionId: 1 });
-paymentSchema.index({ status: 1, date: -1 });
+paymentSchema.index({ cardId: 1, orderId: 1, transactionId: 1 });
+paymentSchema.index({ status: 1, createdAt: -1 });
 
 const Payment = mongoose.model("Payment", paymentSchema);
 

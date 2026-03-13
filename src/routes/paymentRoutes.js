@@ -2,11 +2,32 @@ import express from "express";
 import paymentController from "../controllers/paymentController.js";
 import { authenticate, authorize } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
-import { updatePaymentStatusValidation } from "../validations/paymentValidation.js";
+import {
+  createCashfreeOrderValidation,
+  updatePaymentStatusValidation,
+} from "../validations/paymentValidation.js";
 
 const router = express.Router();
 
-// All routes require authentication
+/**
+ * POST /api/payments/create-order
+ * Create Cashfree order and store pending payment
+ * Access: public
+ */
+router.post(
+  "/create-order",
+  validate(createCashfreeOrderValidation),
+  paymentController.createOrder,
+);
+
+/**
+ * GET /api/payments/verify/:orderId
+ * Verify Cashfree order status
+ * Access: public
+ */
+router.get("/verify/:orderId", paymentController.verifyOrder);
+
+// All routes below require authentication
 router.use(authenticate);
 
 /**
@@ -18,17 +39,6 @@ router.get(
   "/",
   authorize(["admin", "employee", "editor"]),
   paymentController.getAllPayments,
-);
-
-/**
- * GET /api/payments/:id
- * Get payment by ID
- * Access: admin, employee, editor
- */
-router.get(
-  "/:id",
-  authorize(["admin", "employee", "editor"]),
-  paymentController.getPaymentById,
 );
 
 /**
@@ -51,6 +61,17 @@ router.get(
   "/card/:cardId",
   authorize(["admin", "employee", "editor"]),
   paymentController.getPaymentsByCardId,
+);
+
+/**
+ * GET /api/payments/:id
+ * Get payment by ID
+ * Access: admin, employee, editor
+ */
+router.get(
+  "/:id",
+  authorize(["admin", "employee", "editor"]),
+  paymentController.getPaymentById,
 );
 
 /**

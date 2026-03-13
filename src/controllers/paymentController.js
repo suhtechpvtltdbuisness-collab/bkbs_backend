@@ -4,6 +4,56 @@ import { paginate } from "../utils/helpers.js";
 
 class PaymentController {
   /**
+   * Create a Cashfree payment order
+   */
+  async createOrder(req, res, next) {
+    try {
+      const result = await paymentService.createCashfreeOrder({
+        ...req.body,
+        createdBy: req.user?._id || req.user?.id,
+      });
+
+      res.status(201).json(
+        new ApiResponse(
+          201,
+          {
+            orderId: result.orderId,
+            paymentSessionId: result.paymentSessionId,
+            payment: result.payment,
+          },
+          "Payment order created successfully",
+        ),
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify a Cashfree order
+   */
+  async verifyOrder(req, res, next) {
+    try {
+      const result = await paymentService.verifyCashfreeOrder(
+        req.params.orderId,
+      );
+
+      res.status(200).json(
+        new ApiResponse(
+          200,
+          {
+            payment: result.payment,
+            gatewayOrder: result.gatewayOrder,
+          },
+          "Payment order verified successfully",
+        ),
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get payment by ID
    */
   async getPaymentById(req, res, next) {
@@ -68,11 +118,11 @@ class PaymentController {
 
       // Apply filters
       if (req.query.status !== undefined) {
-        filters.status = req.query.status === "true";
+        filters.status = req.query.status;
       }
 
-      if (req.query.method) {
-        filters.method = req.query.method;
+      if (req.query.paymentMethod || req.query.method) {
+        filters.paymentMethod = req.query.paymentMethod || req.query.method;
       }
 
       if (req.query.cardId) {

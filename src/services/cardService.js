@@ -96,22 +96,27 @@ class CardService {
         let paymentRecord = null;
         if (payment) {
           const paymentData = {
-            ...payment,
             cardId: card._id,
             createdBy: cardInfo.createdBy,
-            status: true, // Set status to true when payment data is provided
+            orderId: payment.orderId,
+            transactionId: payment.transactionId,
+            amount: payment.amount ?? payment.totalAmount,
+            paymentMethod: payment.paymentMethod ?? payment.method,
+            status: payment.status || "SUCCESS",
           };
 
           // Check if transaction ID already exists
-          const existingPayment = await Payment.findOne({
-            transactionId: paymentData.transactionId,
-          }).session(session);
+          if (paymentData.transactionId) {
+            const existingPayment = await Payment.findOne({
+              transactionId: paymentData.transactionId,
+            }).session(session);
 
-          if (existingPayment) {
-            throw new ApiError(
-              409,
-              `Payment with transaction ID ${paymentData.transactionId} already exists`,
-            );
+            if (existingPayment) {
+              throw new ApiError(
+                409,
+                `Payment with transaction ID ${paymentData.transactionId} already exists`,
+              );
+            }
           }
 
           [paymentRecord] = await Payment.create([paymentData], { session });

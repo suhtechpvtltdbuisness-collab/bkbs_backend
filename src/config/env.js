@@ -21,6 +21,13 @@ export const config = {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   },
+
+  cashfree: {
+    appId: process.env.CASHFREE_APP_ID || "",
+    secretKey: process.env.CASHFREE_SECRET_KEY || "",
+    environment: process.env.CASHFREE_ENVIRONMENT || "SANDBOX",
+    apiVersion: process.env.CASHFREE_API_VERSION || "2023-08-01",
+  },
 };
 
 export default config;

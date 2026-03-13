@@ -25,12 +25,19 @@ class PaymentRepository {
   }
 
   /**
+   * Find payment by order ID
+   */
+  async findByOrderId(orderId) {
+    return await Payment.findOne({ orderId }).populate("cardId createdBy");
+  }
+
+  /**
    * Find all payments by card ID
    */
   async findByCardId(cardId) {
     return await Payment.find({ cardId })
       .populate("createdBy")
-      .sort({ date: -1 });
+      .sort({ createdAt: -1 });
   }
 
   /**
@@ -42,7 +49,7 @@ class PaymentRepository {
 
     const query = Payment.find(filters)
       .populate("cardId createdBy")
-      .sort({ date: -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -71,6 +78,16 @@ class PaymentRepository {
       { status },
       { new: true, runValidators: true },
     );
+  }
+
+  /**
+   * Update payment by order ID
+   */
+  async updateByOrderId(orderId, updateData) {
+    return await Payment.findOneAndUpdate({ orderId }, updateData, {
+      new: true,
+      runValidators: true,
+    }).populate("cardId createdBy");
   }
 
   /**
