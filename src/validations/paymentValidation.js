@@ -6,10 +6,7 @@ export const createCashfreeOrderValidation = Joi.object({
     "number.positive": "Amount must be positive",
     "any.required": "Amount is required",
   }),
-  customerId: Joi.string().trim().required().messages({
-    "string.empty": "Customer ID is required",
-    "any.required": "Customer ID is required",
-  }),
+  customerId: Joi.string().trim().optional().allow(""),
   customerName: Joi.string().trim().required().messages({
     "string.empty": "Customer name is required",
     "any.required": "Customer name is required",

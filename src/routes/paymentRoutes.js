@@ -10,6 +10,13 @@ import {
 const router = express.Router();
 
 /**
+ * POST /api/payments/webhook
+ * Cashfree payment webhook
+ * Access: public
+ */
+router.post("/webhook", paymentController.webhook);
+
+/**
  * POST /api/payments/create-order
  * Create Cashfree order and store pending payment
  * Access: public

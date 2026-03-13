@@ -29,11 +29,13 @@ class PaymentService {
    */
   async createCashfreeOrder(orderData) {
     const orderId = `order_${Date.now()}`;
+    const generatedCustomerId = `cust_${Date.now()}`;
+    const customerId = orderData.customerId?.trim() || generatedCustomerId;
 
     const gatewayOrder = await cashfreeService.createOrder({
       orderId,
       amount: orderData.amount,
-      customerId: orderData.customerId,
+      customerId,
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
       customerPhone: orderData.customerPhone,
@@ -95,6 +97,65 @@ class PaymentService {
       default:
         return "PENDING";
     }
+  }
+
+  mapCashfreeWebhookTypeToStatus(eventType) {
+    switch (eventType) {
+      case "PAYMENT_SUCCESS":
+        return "SUCCESS";
+      case "PAYMENT_FAILED":
+        return "FAILED";
+      case "PAYMENT_USER_DROPPED":
+      case "PAYMENT_CANCELLED":
+      case "PAYMENT_PENDING":
+      default:
+        return "PENDING";
+    }
+  }
+
+  /**
+   * Process payment webhook event and sync payment status
+   */
+  async handleWebhookEvent(event) {
+    const orderId =
+      event?.data?.order?.order_id ||
+      event?.data?.order_id ||
+      event?.order_id ||
+      null;
+
+    if (!orderId) {
+      return {
+        processed: false,
+        reason: "order_id missing in webhook payload",
+      };
+    }
+
+    const payment = await paymentRepository.findByOrderId(orderId);
+
+    if (!payment) {
+      return {
+        processed: false,
+        reason: "payment not found for order_id",
+        orderId,
+      };
+    }
+
+    const status = this.mapCashfreeWebhookTypeToStatus(event?.type);
+    const transactionId =
+      event?.data?.payment?.cf_payment_id ||
+      event?.data?.payment?.payment_id ||
+      payment.transactionId;
+
+    await paymentRepository.updateByOrderId(orderId, {
+      status,
+      transactionId,
+    });
+
+    return {
+      processed: true,
+      orderId,
+      status,
+    };
   }
 
   /**

@@ -155,9 +155,6 @@
           <label for="amount">Amount</label>
           <input id="amount" type="number" value="500" />
 
-          <label for="customerId">Customer ID</label>
-          <input id="customerId" value="cust_1001" />
-
           <label for="customerName">Customer Name</label>
           <input id="customerName" value="Test User" />
 
@@ -218,7 +215,6 @@
 
         const payload = {
           amount: Number(document.getElementById("amount").value),
-          customerId: document.getElementById("customerId").value.trim(),
           customerName: document.getElementById("customerName").value.trim(),
           customerEmail: document.getElementById("customerEmail").value.trim(),
           customerPhone: document.getElementById("customerPhone").value.trim(),

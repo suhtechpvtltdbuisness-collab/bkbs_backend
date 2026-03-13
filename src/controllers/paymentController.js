@@ -4,6 +4,18 @@ import { paginate } from "../utils/helpers.js";
 
 class PaymentController {
   /**
+   * Cashfree webhook endpoint
+   */
+  async webhook(req, res, next) {
+    try {
+      await paymentService.handleWebhookEvent(req.body);
+      res.sendStatus(200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Create a Cashfree payment order
    */
   async createOrder(req, res, next) {
