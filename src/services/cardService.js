@@ -371,7 +371,90 @@ class CardService {
       status: { $in: ["approved", "active"] }, // Only approved or active cards
     };
 
-    return await cardRepository.findAll(filters, { page, limit });
+    const result = await cardRepository.findAll(filters, { page, limit });
+
+    const cardIds = result.cards.map((card) => card._id);
+    if (cardIds.length === 0) {
+      return {
+        ...result,
+        cards: [],
+      };
+    }
+
+    const members = await CardMember.find({
+      cardId: { $in: cardIds },
+      isDeleted: false,
+    }).lean();
+
+    const membersByCardId = members.reduce((acc, member) => {
+      const key = member.cardId.toString();
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(member);
+      return acc;
+    }, {});
+
+    const cardsWithMembers = result.cards.map((card) => {
+      const cardObject = card.toObject ? card.toObject() : card;
+      return {
+        ...cardObject,
+        members: membersByCardId[card._id.toString()] || [],
+      };
+    });
+
+    return {
+      ...result,
+      cards: cardsWithMembers,
+    };
+  }
+
+  /**
+   * Get all printed cards
+   */
+  async getAllPrintedCards(options = {}) {
+    const { page = 1, limit = 10 } = options;
+
+    const filters = {
+      isPrint: true,
+    };
+
+    const result = await cardRepository.findAll(filters, { page, limit });
+
+    const cardIds = result.cards.map((card) => card._id);
+    if (cardIds.length === 0) {
+      return {
+        ...result,
+        cards: [],
+      };
+    }
+
+    const members = await CardMember.find({
+      cardId: { $in: cardIds },
+      isDeleted: false,
+    }).lean();
+
+    const membersByCardId = members.reduce((acc, member) => {
+      const key = member.cardId.toString();
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(member);
+      return acc;
+    }, {});
+
+    const cardsWithMembers = result.cards.map((card) => {
+      const cardObject = card.toObject ? card.toObject() : card;
+      return {
+        ...cardObject,
+        members: membersByCardId[card._id.toString()] || [],
+      };
+    });
+
+    return {
+      ...result,
+      cards: cardsWithMembers,
+    };
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   getYearUploadDirectory,
   deleteFile as deleteFileUtil,
 } from "../utils/fileSystem.js";
+import { uploadSingleToVercelBlob } from "../utils/vercelBlob.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,6 +97,49 @@ export const uploadAnyFields = upload.any();
 export const uploadSingleFile = upload.single("document");
 
 /**
+ * Middleware for uploading a single doctor logo file
+ */
+export const uploadDoctorLogo = upload.single("logo");
+
+/**
+ * Middleware for uploading a single organization logo file
+ */
+export const uploadOrganizationLogo = upload.single("logo");
+
+/**
+ * Attach uploaded logo path to req.body.logo so Joi validation can include it
+ */
+export const mapUploadedLogoToBody = (blobFolder) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.file) {
+        return next();
+      }
+
+      if (useVercelBlob) {
+        const uploaded = await uploadSingleToVercelBlob(req.file, blobFolder);
+        req.body.logo = uploaded.path;
+        return next();
+      }
+
+      let relativePath = req.file.path;
+      if (relativePath.startsWith("/tmp/uploads/")) {
+        relativePath = relativePath.replace("/tmp/uploads/", "/uploads/");
+      } else if (relativePath.includes("/uploads/")) {
+        relativePath = relativePath.substring(
+          relativePath.indexOf("/uploads/"),
+        );
+      }
+
+      req.body.logo = relativePath;
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  };
+};
+
+/**
  * Helper function to delete files
  * Re-export from fileSystem utility
  */
@@ -126,6 +170,9 @@ export const getFileUrl = (req, filePath) => {
 export default {
   uploadCardDocuments,
   uploadSingleFile,
+  uploadDoctorLogo,
+  uploadOrganizationLogo,
+  mapUploadedLogoToBody,
   deleteFile,
   getFileUrl,
 };

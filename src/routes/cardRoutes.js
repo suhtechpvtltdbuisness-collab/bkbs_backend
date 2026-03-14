@@ -28,8 +28,15 @@ router.use(authenticate);
 // Card routes
 router.get("/", cardController.getAllCards);
 router.get("/verified/not-printed", cardController.getAllVerifiedCards);
+router.get("/printed", cardController.getAllPrintedCards);
 router.get("/my-cards", cardController.getMyCards);
 router.get("/stats", authorize("admin"), cardController.getCardStats);
+router.put(
+  "/print-status",
+  authorize("admin", "employee"),
+  validate(updateIsPrintSchema),
+  cardController.updateIsPrintStatus,
+);
 router.get("/:id", cardController.getCardById);
 router.get("/:id/with-members", cardController.getCardWithMembers);
 
@@ -55,13 +62,6 @@ router.patch(
   authorize("admin", "employee"),
   validate(issueCardSchema),
   cardController.issueCard,
-);
-
-router.put(
-  "/print-status",
-  authorize("admin", "employee"),
-  validate(updateIsPrintSchema),
-  cardController.updateIsPrintStatus,
 );
 
 router.delete(

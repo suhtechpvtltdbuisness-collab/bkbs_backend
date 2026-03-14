@@ -23,6 +23,10 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    logo: {
+      type: String,
+      trim: true,
+    },
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",

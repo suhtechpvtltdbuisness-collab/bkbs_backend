@@ -39,9 +39,7 @@ export const createOrganizationSchema = Joi.object({
     "number.integer": "Number of beds must be an integer",
   }),
 
-  logo: Joi.string().uri().messages({
-    "string.uri": "Logo must be a valid URL",
-  }),
+  logo: Joi.string().trim().max(1000).allow(""),
 
   staff: Joi.number().integer().min(0).messages({
     "number.min": "Number of staff must be at least 0",
@@ -95,9 +93,7 @@ export const updateOrganizationSchema = Joi.object({
     "number.integer": "Number of beds must be an integer",
   }),
 
-  logo: Joi.string().uri().messages({
-    "string.uri": "Logo must be a valid URL",
-  }),
+  logo: Joi.string().trim().max(1000).allow(""),
 
   staff: Joi.number().integer().min(0).messages({
     "number.min": "Number of staff must be at least 0",

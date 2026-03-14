@@ -9,9 +9,10 @@ import path from "path";
 /**
  * Upload files to Vercel Blob storage
  * @param {Array} files - Array of files from multer (req.files)
+ * @param {string} folder - Optional folder path prefix in blob storage
  * @returns {Promise<Array>} - Array of uploaded file metadata with URLs
  */
-export const uploadToVercelBlob = async (files) => {
+export const uploadToVercelBlob = async (files, folder = "") => {
   try {
     const uploadPromises = files.map(async (file) => {
       // Generate path: year/sanitized-filename
@@ -20,7 +21,12 @@ export const uploadToVercelBlob = async (files) => {
       const nameWithoutExt = path.basename(file.originalname, ext);
       const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, "_");
       const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      const blobPath = `${year}/${sanitizedName}-${uniqueSuffix}${ext}`;
+      const normalizedFolder = String(folder || "")
+        .replace(/^\/+|\/+$/g, "")
+        .replace(/\/{2,}/g, "/");
+      const blobPath = normalizedFolder
+        ? `${normalizedFolder}/${year}/${sanitizedName}-${uniqueSuffix}${ext}`
+        : `${year}/${sanitizedName}-${uniqueSuffix}${ext}`;
 
       // Upload to Vercel Blob
       const blob = await put(blobPath, file.buffer, {
@@ -48,10 +54,11 @@ export const uploadToVercelBlob = async (files) => {
 /**
  * Upload single file to Vercel Blob storage
  * @param {Object} file - Single file from multer (req.file)
+ * @param {string} folder - Optional folder path prefix in blob storage
  * @returns {Promise<Object>} - Uploaded file metadata with URL
  */
-export const uploadSingleToVercelBlob = async (file) => {
-  const result = await uploadToVercelBlob([file]);
+export const uploadSingleToVercelBlob = async (file, folder = "") => {
+  const result = await uploadToVercelBlob([file], folder);
   return result[0];
 };
 

@@ -3,6 +3,10 @@ import doctorController from "../controllers/doctorController.js";
 import { authenticate, authorize } from "../middlewares/auth.js";
 import validate from "../middlewares/validate.js";
 import {
+  uploadDoctorLogo,
+  mapUploadedLogoToBody,
+} from "../middlewares/upload.js";
+import {
   createDoctorSchema,
   updateDoctorSchema,
 } from "../validations/doctorValidation.js";
@@ -14,6 +18,8 @@ router.post(
   "/",
   authenticate,
   authorize("admin", "employee"),
+  uploadDoctorLogo,
+  mapUploadedLogoToBody("doctors/logos"),
   validate(createDoctorSchema),
   doctorController.createDoctor,
 );
@@ -36,6 +42,8 @@ router.put(
   "/:id",
   authenticate,
   authorize("admin", "employee"),
+  uploadDoctorLogo,
+  mapUploadedLogoToBody("doctors/logos"),
   validate(updateDoctorSchema),
   doctorController.updateDoctor,
 );

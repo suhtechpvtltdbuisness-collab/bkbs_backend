@@ -3,6 +3,10 @@ import organizationController from "../controllers/organizationController.js";
 import { authenticate, authorize } from "../middlewares/auth.js";
 import validate from "../middlewares/validate.js";
 import {
+  uploadOrganizationLogo,
+  mapUploadedLogoToBody,
+} from "../middlewares/upload.js";
+import {
   createOrganizationSchema,
   updateOrganizationSchema,
 } from "../validations/organizationValidation.js";
@@ -14,6 +18,8 @@ router.post(
   "/",
   authenticate,
   authorize("admin", "employee"),
+  uploadOrganizationLogo,
+  mapUploadedLogoToBody("organizations/logos"),
   validate(createOrganizationSchema),
   organizationController.createOrganization,
 );
@@ -29,6 +35,8 @@ router.put(
   "/:id",
   authenticate,
   authorize("admin", "employee"),
+  uploadOrganizationLogo,
+  mapUploadedLogoToBody("organizations/logos"),
   validate(updateOrganizationSchema),
   organizationController.updateOrganization,
 );

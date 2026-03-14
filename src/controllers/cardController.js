@@ -285,6 +285,24 @@ class CardController {
   }
 
   /**
+   * Get all printed cards
+   */
+  async getAllPrintedCards(req, res, next) {
+    try {
+      const { page, limit } = paginate(req.query.page, req.query.limit);
+      const result = await cardService.getAllPrintedCards({ page, limit });
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(200, result, "Printed cards retrieved successfully"),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Update isPrint status for multiple cards
    */
   async updateIsPrintStatus(req, res, next) {

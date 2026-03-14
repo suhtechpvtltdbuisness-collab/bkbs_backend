@@ -29,6 +29,8 @@ export const createDoctorSchema = Joi.object({
     "string.max": "Location cannot exceed 200 characters",
   }),
 
+  logo: Joi.string().trim().max(1000).allow(""),
+
   organizationId: Joi.string()
     .pattern(/^[0-9a-fA-F]{24}$/)
     .required()
@@ -72,6 +74,8 @@ export const updateDoctorSchema = Joi.object({
   location: Joi.string().trim().max(200).messages({
     "string.max": "Location cannot exceed 200 characters",
   }),
+
+  logo: Joi.string().trim().max(1000).allow(""),
 
   organizationId: Joi.string()
     .pattern(/^[0-9a-fA-F]{24}$/)
