@@ -59,13 +59,21 @@ export const createCardSchema = Joi.object({
     )
     .optional(),
   payment: Joi.object({
-    transactionId: Joi.string().trim().required().messages({
-      "string.empty": "Transaction ID is required",
-      "any.required": "Transaction ID is required",
-    }),
-    method: Joi.string().valid("online", "cash").required().messages({
-      "any.only": "Payment method must be either 'online' or 'cash'",
-      "any.required": "Payment method is required",
+    method: Joi.string()
+      .valid("online", "cash", "offline")
+      .required()
+      .messages({
+        "any.only":
+          "Payment method must be either 'online', 'cash', or 'offline'",
+        "any.required": "Payment method is required",
+      }),
+    transactionId: Joi.when("method", {
+      is: Joi.string().valid("cash", "offline"),
+      then: Joi.string().trim().required().messages({
+        "string.empty": "Transaction ID is required for offline/cash payments",
+        "any.required": "Transaction ID is required for offline/cash payments",
+      }),
+      otherwise: Joi.string().trim().optional().allow(""),
     }),
     totalAmount: Joi.number().positive().required().messages({
       "number.base": "Total amount must be a number",

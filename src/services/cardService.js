@@ -95,13 +95,19 @@ class CardService {
         // Create payment if payment data is provided
         let paymentRecord = null;
         if (payment) {
+          const rawPaymentMethod = payment.paymentMethod ?? payment.method;
+          const normalizedPaymentMethod =
+            String(rawPaymentMethod || "cash").toLowerCase() === "offline"
+              ? "cash"
+              : String(rawPaymentMethod || "cash").toLowerCase();
+
           const paymentData = {
             cardId: card._id,
             createdBy: cardInfo.createdBy,
             orderId: payment.orderId,
             transactionId: payment.transactionId,
             amount: payment.amount ?? payment.totalAmount,
-            paymentMethod: payment.paymentMethod ?? payment.method,
+            paymentMethod: normalizedPaymentMethod,
             status: payment.status || "SUCCESS",
           };
 
@@ -112,14 +118,42 @@ class CardService {
             }).session(session);
 
             if (existingPayment) {
-              throw new ApiError(
-                409,
-                `Payment with transaction ID ${paymentData.transactionId} already exists`,
-              );
+              if (paymentData.paymentMethod === "online") {
+                const alreadyLinkedToAnotherCard =
+                  existingPayment.cardId &&
+                  existingPayment.cardId.toString() !== card._id.toString();
+
+                if (alreadyLinkedToAnotherCard) {
+                  throw new ApiError(
+                    409,
+                    `Payment with transaction ID ${paymentData.transactionId} is already linked to another card`,
+                  );
+                }
+
+                existingPayment.cardId = card._id;
+                if (paymentData.createdBy !== undefined) {
+                  existingPayment.createdBy = paymentData.createdBy;
+                }
+                if (paymentData.amount !== undefined) {
+                  existingPayment.amount = paymentData.amount;
+                }
+                if (paymentData.status) {
+                  existingPayment.status = paymentData.status;
+                }
+                existingPayment.paymentMethod = paymentData.paymentMethod;
+                paymentRecord = await existingPayment.save({ session });
+              } else {
+                throw new ApiError(
+                  409,
+                  `Payment with transaction ID ${paymentData.transactionId} already exists`,
+                );
+              }
             }
           }
 
-          [paymentRecord] = await Payment.create([paymentData], { session });
+          if (!paymentRecord) {
+            [paymentRecord] = await Payment.create([paymentData], { session });
+          }
         }
 
         // Commit transaction
