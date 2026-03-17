@@ -75,10 +75,24 @@ export const deleteOrganization = asyncHandler(async (req, res) => {
   successResponse(res, 200, "Organization deleted successfully", null);
 });
 
+/**
+ * @desc    Get dashboard statistics
+ * @route   GET /api/organizations/dashboard/stats
+ * @access  Private (Admin)
+ */
+export const getDashboardStats = asyncHandler(async (req, res) => {
+  const stats = await organizationService.getDashboardStats();
+
+  successResponse(res, 200, "Dashboard statistics retrieved successfully", {
+    stats,
+  });
+});
+
 export default {
   createOrganization,
   getAllOrganizations,
   getOrganizationById,
   updateOrganization,
   deleteOrganization,
+  getDashboardStats,
 };

@@ -1,5 +1,8 @@
 import organizationRepository from "../repositories/organizationRepository.js";
 import doctorRepository from "../repositories/doctorRepository.js";
+import cardRepository from "../repositories/cardRepository.js";
+import donationRepository from "../repositories/donationRepository.js";
+import employeeRepository from "../repositories/employeeRepository.js";
 import { ApiError } from "../utils/apiResponse.js";
 
 class OrganizationService {
@@ -104,6 +107,36 @@ class OrganizationService {
     }
 
     return { message: "Organization deleted successfully" };
+  }
+
+  /**
+   * Get dashboard statistics
+   */
+  async getDashboardStats() {
+    const [
+      totalCards,
+      verifiedCards,
+      unverifiedCards,
+      totalOrganizations,
+      totalDonations,
+      totalEmployees,
+    ] = await Promise.all([
+      cardRepository.count(),
+      cardRepository.count({ status: { $in: ["approved"] } }),
+      cardRepository.count({ status: "pending" }),
+      organizationRepository.count(),
+      donationRepository.count(),
+      employeeRepository.count(),
+    ]);
+
+    return {
+      totalCards,
+      verifiedCards,
+      unverifiedCards,
+      totalOrganizations,
+      totalDonations,
+      totalEmployees,
+    };
   }
 }
 

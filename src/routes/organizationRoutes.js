@@ -27,6 +27,14 @@ router.post(
 // Get all organizations (All authenticated users)
 router.get("/", authenticate, organizationController.getAllOrganizations);
 
+// Dashboard stats (Admin only)
+router.get(
+  "/dashboard/stats",
+  authenticate,
+  authorize("admin"),
+  organizationController.getDashboardStats,
+);
+
 // Get organization by ID (All authenticated users)
 router.get("/:id", authenticate, organizationController.getOrganizationById);
 
