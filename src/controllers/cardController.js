@@ -325,6 +325,84 @@ class CardController {
   }
 
   /**
+   * Check if phone/contact already exists in cards
+   */
+  async checkPhoneExists(req, res, next) {
+    try {
+      const result = await cardService.checkPhoneExists(req.query.contact);
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(200, result, "Phone existence checked successfully"),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Check if full name already exists in cards
+   */
+  async checkNameExists(req, res, next) {
+    try {
+      const result = await cardService.checkNameExists(
+        req.query.firstName,
+        req.query.middleName,
+        req.query.lastName,
+      );
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(200, result, "Name existence checked successfully"),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Check if email already exists in cards
+   */
+  async checkEmailExists(req, res, next) {
+    try {
+      const result = await cardService.checkEmailExists(req.query.email);
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(200, result, "Email existence checked successfully"),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Check if Aadhaar number already exists in cards
+   */
+  async checkAadhaarExists(req, res, next) {
+    try {
+      const result = await cardService.checkAadhaarExists(
+        req.query.aadhaarNumber,
+      );
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(
+            200,
+            result,
+            "Aadhaar existence checked successfully",
+          ),
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Create new card (Public - No authentication required)
    * Sets createdBy to -1 for public submissions
    */

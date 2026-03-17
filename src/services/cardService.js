@@ -54,6 +54,20 @@ class CardService {
       );
     }
 
+    // Check if Aadhaar number is already registered
+    if (cardInfo.aadhaarNumber) {
+      const existingCardByAadhaar = await cardRepository.findByAadhaarNumber(
+        cardInfo.aadhaarNumber,
+      );
+
+      if (existingCardByAadhaar) {
+        throw new ApiError(
+          409,
+          `Aadhaar number ${cardInfo.aadhaarNumber} is already registered`,
+        );
+      }
+    }
+
     // Always auto-generate applicationId to ensure uniqueness
     cardInfo.applicationId = await generateApplicationId();
 
@@ -485,6 +499,93 @@ class CardService {
       success: true,
       updated: result.modifiedCount,
       message: `${result.modifiedCount} card(s) marked as printed`,
+    };
+  }
+
+  /**
+   * Check if contact already exists in cards
+   */
+  async checkPhoneExists(contact) {
+    if (!contact || !contact.trim()) {
+      throw new ApiError(400, "Contact is required");
+    }
+
+    const card = await cardRepository.findByContact(contact.trim());
+
+    return {
+      exists: !!card,
+      field: "contact",
+      value: contact.trim(),
+      cardId: card?._id || null,
+    };
+  }
+
+  /**
+   * Check if name already exists in cards
+   */
+  async checkNameExists(firstName, middleName, lastName) {
+    if (!firstName || !firstName.trim()) {
+      throw new ApiError(400, "First name is required");
+    }
+
+    const card = await cardRepository.findByName(
+      firstName.trim(),
+      (middleName || "").trim(),
+      (lastName || "").trim(),
+    );
+
+    return {
+      exists: !!card,
+      field: "name",
+      value: {
+        firstName: firstName.trim(),
+        middleName: (middleName || "").trim(),
+        lastName: (lastName || "").trim(),
+      },
+      cardId: card?._id || null,
+    };
+  }
+
+  /**
+   * Check if email already exists in cards
+   */
+  async checkEmailExists(email) {
+    if (!email || !email.trim()) {
+      throw new ApiError(400, "Email is required");
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const card = await cardRepository.findByEmail(normalizedEmail);
+
+    return {
+      exists: !!card,
+      field: "email",
+      value: normalizedEmail,
+      cardId: card?._id || null,
+    };
+  }
+
+  /**
+   * Check if Aadhaar number already exists in cards
+   */
+  async checkAadhaarExists(aadhaarNumber) {
+    if (!aadhaarNumber || !aadhaarNumber.trim()) {
+      throw new ApiError(400, "Aadhaar number is required");
+    }
+
+    const normalizedAadhaar = aadhaarNumber.trim();
+
+    if (!/^\d{12}$/.test(normalizedAadhaar)) {
+      throw new ApiError(400, "Aadhaar number must be exactly 12 digits");
+    }
+
+    const card = await cardRepository.findByAadhaarNumber(normalizedAadhaar);
+
+    return {
+      exists: !!card,
+      field: "aadhaarNumber",
+      value: normalizedAadhaar,
+      cardId: card?._id || null,
     };
   }
 }

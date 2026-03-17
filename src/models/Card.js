@@ -60,6 +60,11 @@ const cardSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    aadhaarNumber: {
+      type: String,
+      trim: true,
+      match: [/^\d{12}$/, "Aadhaar number must be 12 digits"],
+    },
     cardNo: {
       type: String,
       unique: true,
@@ -138,6 +143,17 @@ cardSchema.index(
   {
     unique: true,
     partialFilterExpression: { isDeleted: false },
+  },
+);
+
+cardSchema.index(
+  { aadhaarNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isDeleted: false,
+      aadhaarNumber: { $exists: true },
+    },
   },
 );
 

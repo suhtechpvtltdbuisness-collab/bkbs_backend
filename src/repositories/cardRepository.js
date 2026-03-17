@@ -112,6 +112,20 @@ class CardRepository {
       isDeleted: false,
     });
   }
+
+  async findByEmail(email) {
+    return await Card.findOne({
+      email,
+      isDeleted: false,
+    });
+  }
+
+  async findByAadhaarNumber(aadhaarNumber) {
+    return await Card.findOne({
+      aadhaarNumber,
+      isDeleted: false,
+    });
+  }
 }
 
 export default new CardRepository();

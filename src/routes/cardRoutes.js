@@ -22,6 +22,11 @@ router.post(
   cardController.createCardPublic,
 );
 
+router.get("/check/phone", cardController.checkPhoneExists);
+router.get("/check/name", cardController.checkNameExists);
+router.get("/check/email", cardController.checkEmailExists);
+router.get("/check/aadhaar", cardController.checkAadhaarExists);
+
 // Protected routes - All card routes require authentication
 router.use(authenticate);
 
@@ -31,6 +36,7 @@ router.get("/verified/not-printed", cardController.getAllVerifiedCards);
 router.get("/printed", cardController.getAllPrintedCards);
 router.get("/my-cards", cardController.getMyCards);
 router.get("/stats", authorize("admin"), cardController.getCardStats);
+
 router.put(
   "/print-status",
   authorize("admin", "employee"),
