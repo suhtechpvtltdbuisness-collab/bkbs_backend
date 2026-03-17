@@ -5,8 +5,18 @@ import Employee from "../models/Employee.js";
 import { ApiError } from "../utils/apiResponse.js";
 
 const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 const AGE_GROUPS = ["0-18", "19-35", "36-50", "51-65", "65+"];
@@ -238,9 +248,7 @@ class ReportService {
       status: r._id,
       count: r.count,
       percentage:
-        total > 0
-          ? parseFloat(((r.count / total) * 100).toFixed(2))
-          : 0,
+        total > 0 ? parseFloat(((r.count / total) * 100).toFixed(2)) : 0,
     }));
   }
 

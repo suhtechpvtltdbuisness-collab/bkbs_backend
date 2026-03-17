@@ -12,7 +12,9 @@ class ReportController {
 
       res
         .status(200)
-        .json(new ApiResponse(200, report, "Daily report retrieved successfully"));
+        .json(
+          new ApiResponse(200, report, "Daily report retrieved successfully"),
+        );
     } catch (error) {
       next(error);
     }
@@ -49,7 +51,9 @@ class ReportController {
 
       res
         .status(200)
-        .json(new ApiResponse(200, report, "Yearly report retrieved successfully"));
+        .json(
+          new ApiResponse(200, report, "Yearly report retrieved successfully"),
+        );
     } catch (error) {
       next(error);
     }
@@ -66,7 +70,9 @@ class ReportController {
       const summary = await reportService.getKeySummary();
       res
         .status(200)
-        .json(new ApiResponse(200, summary, "Key summary retrieved successfully"));
+        .json(
+          new ApiResponse(200, summary, "Key summary retrieved successfully"),
+        );
     } catch (error) {
       next(error);
     }
@@ -81,7 +87,9 @@ class ReportController {
       const data = await reportService.getMonthlyTrend(req.query.year);
       res
         .status(200)
-        .json(new ApiResponse(200, data, "Monthly trend retrieved successfully"));
+        .json(
+          new ApiResponse(200, data, "Monthly trend retrieved successfully"),
+        );
     } catch (error) {
       next(error);
     }
@@ -96,7 +104,9 @@ class ReportController {
       const data = await reportService.getCardsByStatus();
       res
         .status(200)
-        .json(new ApiResponse(200, data, "Cards by status retrieved successfully"));
+        .json(
+          new ApiResponse(200, data, "Cards by status retrieved successfully"),
+        );
     } catch (error) {
       next(error);
     }
@@ -111,7 +121,13 @@ class ReportController {
       const data = await reportService.getAgeGroupDistribution();
       res
         .status(200)
-        .json(new ApiResponse(200, data, "Age group distribution retrieved successfully"));
+        .json(
+          new ApiResponse(
+            200,
+            data,
+            "Age group distribution retrieved successfully",
+          ),
+        );
     } catch (error) {
       next(error);
     }
@@ -126,7 +142,13 @@ class ReportController {
       const data = await reportService.getLocationDistribution(req.query.limit);
       res
         .status(200)
-        .json(new ApiResponse(200, data, "Location distribution retrieved successfully"));
+        .json(
+          new ApiResponse(
+            200,
+            data,
+            "Location distribution retrieved successfully",
+          ),
+        );
     } catch (error) {
       next(error);
     }
@@ -141,7 +163,13 @@ class ReportController {
       const data = await reportService.getEmployeePerformance(req.query.limit);
       res
         .status(200)
-        .json(new ApiResponse(200, data, "Employee performance retrieved successfully"));
+        .json(
+          new ApiResponse(
+            200,
+            data,
+            "Employee performance retrieved successfully",
+          ),
+        );
     } catch (error) {
       next(error);
     }
