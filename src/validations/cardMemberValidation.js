@@ -7,6 +7,7 @@ export const addCardMemberSchema = Joi.object({
   relation: Joi.string().required().messages({
     "any.required": "Relation is required",
   }),
+  documentId: Joi.string().optional().allow(""),
   age: Joi.number().min(0).max(150).required().messages({
     "any.required": "Age is required",
     "number.min": "Age must be a positive number",
@@ -24,6 +25,7 @@ export const addCardMembersSchema = Joi.object({
 export const updateCardMemberSchema = Joi.object({
   name: Joi.string().optional(),
   relation: Joi.string().optional(),
+  documentId: Joi.string().optional().allow(""),
   age: Joi.number().min(0).max(150).optional().messages({
     "number.min": "Age must be a positive number",
     "number.max": "Age must be less than 150",

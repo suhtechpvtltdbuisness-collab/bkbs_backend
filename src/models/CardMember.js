@@ -17,6 +17,11 @@ const cardMemberSchema = new mongoose.Schema(
       required: [true, "Relation is required"],
       trim: true,
     },
+    documentId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     age: {
       type: Number,
       required: [true, "Age is required"],

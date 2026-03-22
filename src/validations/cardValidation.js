@@ -57,6 +57,7 @@ export const createCardSchema = Joi.object({
         relation: Joi.string().required().messages({
           "any.required": "Member relation is required",
         }),
+        documentId: Joi.string().optional().allow(""),
         age: Joi.number().required().min(0).messages({
           "any.required": "Member age is required",
           "number.min": "Age must be a positive number",
