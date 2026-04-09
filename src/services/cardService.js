@@ -49,20 +49,6 @@ class CardService {
     const normalizedCardData = this.normalizeCardOptionalFields(cardData);
     const { members, payment, ...cardInfo } = normalizedCardData;
 
-    // Check if card already exists with same name (firstName + middleName + lastName)
-    const existingCardByName = await cardRepository.findByName(
-      cardInfo.firstName,
-      cardInfo.middleName || "",
-      cardInfo.lastName || "",
-    );
-
-    if (existingCardByName) {
-      throw new ApiError(
-        409,
-        `Card already exists for ${cardInfo.firstName} ${cardInfo.middleName || ""} ${cardInfo.lastName || ""}`.trim(),
-      );
-    }
-
     // Check if phone number is already registered
     const existingCardByContact = await cardRepository.findByContact(
       cardInfo.contact,
@@ -557,7 +543,8 @@ class CardService {
     );
 
     return {
-      exists: !!card,
+      exists: false,
+      duplicateByName: !!card,
       field: "name",
       value: {
         firstName: firstName.trim(),
@@ -565,6 +552,7 @@ class CardService {
         lastName: (lastName || "").trim(),
       },
       cardId: card?._id || null,
+      note: "Name alone is no longer a uniqueness constraint. Use Aadhaar to validate duplicates.",
     };
   }
 

@@ -14,7 +14,7 @@ dotenv.config({ path: path.join(__dirname, "../../.env") });
  * Script to find and clean up duplicate cards
  * Duplicates are based on:
  * 1. Contact number (phone)
- * 2. Name combination (firstName + middleName + lastName)
+ * 2. Aadhaar number when present
  */
 const findAndCleanupDuplicates = async () => {
   try {
@@ -91,19 +91,18 @@ const findAndCleanupDuplicates = async () => {
       console.log("✓ No duplicate contact numbers found");
     }
 
-    // Find duplicate names
-    console.log("\n🔍 Finding duplicate name combinations...");
-    const duplicateNames = await Card.aggregate([
+    // Find duplicate Aadhaar numbers
+    console.log("\n🔍 Finding duplicate Aadhaar numbers...");
+    const duplicateAadhaars = await Card.aggregate([
       {
-        $match: { isDeleted: false },
+        $match: {
+          isDeleted: false,
+          aadhaarNumber: { $exists: true, $ne: null },
+        },
       },
       {
         $group: {
-          _id: {
-            firstName: "$firstName",
-            middleName: { $ifNull: ["$middleName", ""] },
-            lastName: { $ifNull: ["$lastName", ""] },
-          },
+          _id: "$aadhaarNumber",
           count: { $sum: 1 },
           cards: {
             $push: {
@@ -120,15 +119,13 @@ const findAndCleanupDuplicates = async () => {
       },
     ]);
 
-    if (duplicateNames.length > 0) {
+    if (duplicateAadhaars.length > 0) {
       console.log(
-        `\n⚠️  Found ${duplicateNames.length} duplicate name combinations:\n`,
+        `\n⚠️  Found ${duplicateAadhaars.length} duplicate Aadhaar numbers:\n`,
       );
 
-      for (const dup of duplicateNames) {
-        console.log(
-          `👤 Name: ${dup._id.firstName} ${dup._id.middleName} ${dup._id.lastName} (${dup.count} cards)`,
-        );
+      for (const dup of duplicateAadhaars) {
+        console.log(`🆔 Aadhaar: ${dup._id} (${dup.count} cards)`);
         dup.cards.forEach((card, index) => {
           console.log(
             `   ${index + 1}. ID: ${card.id} | App ID: ${card.applicationId} | Contact: ${card.contact} | Created: ${card.createdAt}`,
@@ -141,7 +138,7 @@ const findAndCleanupDuplicates = async () => {
         "🗑️  Keeping the oldest card for each duplicate, marking others as deleted...\n",
       );
 
-      for (const dup of duplicateNames) {
+      for (const dup of duplicateAadhaars) {
         // Sort by createdAt, keep the oldest one
         const sortedCards = dup.cards.sort(
           (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
@@ -164,7 +161,7 @@ const findAndCleanupDuplicates = async () => {
         );
       }
     } else {
-      console.log("✓ No duplicate name combinations found");
+      console.log("✓ No duplicate Aadhaar numbers found");
     }
 
     console.log("\n✅ Duplicate cleanup completed!");

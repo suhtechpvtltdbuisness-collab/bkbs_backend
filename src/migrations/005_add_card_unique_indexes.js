@@ -11,10 +11,10 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 /**
- * Migration: Add unique indexes for contact and compound name fields
+ * Migration: Add unique indexes for contact and Aadhaar fields
  * This ensures:
  * 1. Phone numbers (contact) are unique across all cards
- * 2. Name combinations (firstName, middleName, lastName) are unique
+ * 2. Aadhaar numbers are unique across all cards when provided
  */
 const addCardUniqueIndexes = async () => {
   try {
@@ -44,9 +44,7 @@ const addCardUniqueIndexes = async () => {
 
     console.log("\n✅ Migration completed successfully!");
     console.log("ℹ️  Contact numbers are now unique");
-    console.log(
-      "ℹ️  Name combinations (firstName + middleName + lastName) are now unique",
-    );
+    console.log("ℹ️  Aadhaar numbers are now unique when provided");
   } catch (error) {
     console.error("❌ Migration failed:", error);
 
@@ -57,14 +55,14 @@ const addCardUniqueIndexes = async () => {
         "Please clean up duplicate entries before running this migration:",
       );
       console.error("1. Find cards with duplicate contact numbers");
-      console.error("2. Find cards with duplicate name combinations");
+      console.error("2. Find cards with duplicate Aadhaar numbers");
       console.error("3. Remove or merge duplicate entries");
       console.error("\nYou can find duplicates with these queries:");
       console.error(
         "  db.cards.aggregate([{$group: {_id: '$contact', count: {$sum: 1}}}, {$match: {count: {$gt: 1}}}])",
       );
       console.error(
-        "  db.cards.aggregate([{$group: {_id: {firstName: '$firstName', middleName: '$middleName', lastName: '$lastName'}, count: {$sum: 1}}}, {$match: {count: {$gt: 1}}}])",
+        "  db.cards.aggregate([{$match: {aadhaarNumber: {$exists: true, $ne: null}}}, {$group: {_id: '$aadhaarNumber', count: {$sum: 1}}}, {$match: {count: {$gt: 1}}}])",
       );
     }
 

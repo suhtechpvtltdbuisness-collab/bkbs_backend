@@ -143,14 +143,6 @@ cardSchema.index(
 );
 
 cardSchema.index(
-  { firstName: 1, middleName: 1, lastName: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { isDeleted: false },
-  },
-);
-
-cardSchema.index(
   { aadhaarNumber: 1 },
   {
     unique: true,

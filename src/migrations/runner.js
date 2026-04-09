@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import connectDB from "../config/database.js";
+import Card from "../models/Card.js";
 
 // Import migrations
 import createAdminUser from "./001_create_admin_user.js";
@@ -10,6 +11,19 @@ dotenv.config();
 // List all migrations in order
 const migrations = [
   { name: "001_create_admin_user", migration: createAdminUser },
+  {
+    name: "002_sync_card_indexes",
+    migration: {
+      up: async () => {
+        console.log("Running migration: Sync card indexes");
+        await Card.syncIndexes();
+        console.log("✅ Card indexes synced");
+      },
+      down: async () => {
+        console.log("Skipping rollback for card index sync");
+      },
+    },
+  },
 ];
 
 /**
