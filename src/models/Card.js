@@ -52,6 +52,10 @@ const cardSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    religion: {
+      type: String,
+      trim: true,
+    },
     dob: {
       type: String,
       trim: true,

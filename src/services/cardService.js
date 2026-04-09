@@ -11,6 +11,26 @@ import CardMember from "../models/CardMember.js";
 import Payment from "../models/Payment.js";
 
 class CardService {
+  normalizeCardOptionalFields(cardData = {}) {
+    const normalized = { ...cardData };
+
+    if (Object.hasOwn(normalized, "alternateContact")) {
+      normalized.alternateContact =
+        typeof normalized.alternateContact === "string"
+          ? normalized.alternateContact.trim()
+          : normalized.alternateContact;
+    }
+
+    if (Object.hasOwn(normalized, "religion")) {
+      normalized.religion =
+        typeof normalized.religion === "string"
+          ? normalized.religion.trim()
+          : normalized.religion;
+    }
+
+    return normalized;
+  }
+
   /**
    * Create new card with optional members and payment
    * Only employee, editor, or admin roles can create cards
@@ -26,7 +46,8 @@ class CardService {
     }
 
     // Extract members array and payment data from cardData
-    const { members, payment, ...cardInfo } = cardData;
+    const normalizedCardData = this.normalizeCardOptionalFields(cardData);
+    const { members, payment, ...cardInfo } = normalizedCardData;
 
     // Check if card already exists with same name (firstName + middleName + lastName)
     const existingCardByName = await cardRepository.findByName(
@@ -271,7 +292,8 @@ class CardService {
       throw new ApiError(400, "Created by cannot be updated");
     }
 
-    const card = await cardRepository.updateById(id, updateData);
+    const normalizedUpdateData = this.normalizeCardOptionalFields(updateData);
+    const card = await cardRepository.updateById(id, normalizedUpdateData);
 
     if (!card || card.isDeleted) {
       throw new ApiError(404, "Card not found");

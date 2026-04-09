@@ -20,6 +20,7 @@ export const createCardSchema = Joi.object({
   }),
   relation: Joi.string().optional().allow(""),
   relatedPerson: Joi.string().optional().allow(""),
+  religion: Joi.string().optional().allow(""),
   dob: Joi.string().optional().allow(""),
   pincode: Joi.string().optional().allow(""),
   aadhaarNumber: Joi.string()
@@ -106,6 +107,7 @@ export const updateCardSchema = Joi.object({
   }),
   relation: Joi.string().optional().allow(""),
   relatedPerson: Joi.string().optional().allow(""),
+  religion: Joi.string().optional().allow(""),
   dob: Joi.string().optional().allow(""),
   pincode: Joi.string().optional().allow(""),
   aadhaarNumber: Joi.string()
