@@ -6,10 +6,9 @@ class AttendanceRepository {
   }
 
   async findById(id) {
-    return await Attendance.findById(id).populate(
-      "userId",
-      "name email role employeeId",
-    );
+    return await Attendance.findById(id)
+      .populate("userId", "name email role employeeId")
+      .populate("campId", "name lat long city state date");
   }
 
   async findAll(filters = {}, options = {}) {
@@ -20,6 +19,7 @@ class AttendanceRepository {
 
     const attendances = await Attendance.find(query)
       .populate("userId", "name email role employeeId")
+      .populate("campId", "name city state date")
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -42,7 +42,9 @@ class AttendanceRepository {
       id,
       { $set: updateData },
       { new: true, runValidators: true },
-    ).populate("userId", "name email role employeeId");
+    )
+      .populate("userId", "name email role employeeId")
+      .populate("campId", "name city state date");
   }
 
   async softDeleteById(id) {

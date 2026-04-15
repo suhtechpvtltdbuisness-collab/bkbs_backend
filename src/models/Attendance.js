@@ -2,6 +2,12 @@ import mongoose from "mongoose";
 
 const attendanceSchema = new mongoose.Schema(
   {
+    campId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Camp",
+      required: [true, "Camp ID is required"],
+      index: true,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -34,6 +40,7 @@ const attendanceSchema = new mongoose.Schema(
       type: String,
       required: [true, "Status is required"],
       trim: true,
+      default: "present",
     },
     date: {
       type: Date,
@@ -51,6 +58,7 @@ const attendanceSchema = new mongoose.Schema(
 
 attendanceSchema.index({ date: -1 });
 attendanceSchema.index({ userId: 1, date: -1 });
+attendanceSchema.index({ campId: 1, date: -1 });
 attendanceSchema.index({ state: 1, city: 1 });
 attendanceSchema.index({ status: 1 });
 

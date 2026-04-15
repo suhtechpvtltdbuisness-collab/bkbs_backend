@@ -1,6 +1,8 @@
 import express from "express";
 import attendanceController from "../controllers/attendanceController.js";
 import { authenticate, authorize } from "../middlewares/auth.js";
+import validate from "../middlewares/validate.js";
+import { createAttendanceSchema } from "../validations/attendanceValidation.js";
 
 const router = express.Router();
 
@@ -14,12 +16,20 @@ router.get(
 );
 
 // POST /api/attendance (employee only)
-router.post("/", authorize("employee"), attendanceController.createAttendance);
+// Body: { campId, currentLat, currentLong }
+router.post(
+  "/",
+  authorize("employee"),
+  validate(createAttendanceSchema),
+  attendanceController.createAttendance,
+);
 
 // GET /api/attendance (admin only)
+// Query params: date=YYYY-MM-DD or fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD
 router.get("/", authorize("admin"), attendanceController.getAllAttendances);
 
 // GET /api/attendance/users/:id (own attendance or admin)
+// Query params: date=YYYY-MM-DD or fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD
 router.get(
   "/users/:id",
   authorize("admin", "employee", "user"),

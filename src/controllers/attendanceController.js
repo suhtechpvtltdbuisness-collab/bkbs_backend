@@ -2,6 +2,14 @@ import attendanceService from "../services/attendanceService.js";
 import { ApiError, successResponse } from "../utils/apiResponse.js";
 
 class AttendanceController {
+  getDateFilters(query) {
+    return attendanceService.buildDateFilter({
+      date: query.date,
+      fromDate: query.fromDate,
+      toDate: query.toDate,
+    });
+  }
+
   async createAttendance(req, res, next) {
     try {
       const attendance = await attendanceService.createAttendance(
@@ -19,13 +27,18 @@ class AttendanceController {
 
   async getAllAttendances(req, res, next) {
     try {
+      const filters = this.getDateFilters(req.query);
+
       const options = {
         page: parseInt(req.query.page, 10) || 1,
         limit: parseInt(req.query.limit, 10) || 10,
         sort: req.query.sort || "-date",
       };
 
-      const result = await attendanceService.getAllAttendances({}, options);
+      const result = await attendanceService.getAllAttendances(
+        filters,
+        options,
+      );
 
       successResponse(res, 200, "Attendances retrieved successfully", result);
     } catch (error) {
@@ -56,6 +69,8 @@ class AttendanceController {
         throw new ApiError(403, "You can only view your own attendance");
       }
 
+      const dateFilters = this.getDateFilters(req.query);
+
       const options = {
         page: parseInt(req.query.page, 10) || 1,
         limit: parseInt(req.query.limit, 10) || 10,
@@ -64,6 +79,7 @@ class AttendanceController {
 
       const result = await attendanceService.getAttendanceByUserId(
         requestedUserId,
+        dateFilters,
         options,
       );
 
