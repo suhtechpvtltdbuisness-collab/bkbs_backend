@@ -12,6 +12,7 @@ import paymentRoutes from "./paymentRoutes.js";
 import donationRoutes from "./donationRoutes.js";
 import reportRoutes from "./reportRoutes.js";
 import attendanceRoutes from "./attendanceRoutes.js";
+import campRoutes from "./campRoutes.js";
 
 const router = express.Router();
 
@@ -71,5 +72,6 @@ router.use("/payments", paymentRoutes);
 router.use("/donations", donationRoutes);
 router.use("/reports", reportRoutes);
 router.use("/attendance", attendanceRoutes);
+router.use("/camps", campRoutes);
 
 export default router;
