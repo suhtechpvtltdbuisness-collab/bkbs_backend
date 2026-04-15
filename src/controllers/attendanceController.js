@@ -2,6 +2,16 @@ import attendanceService from "../services/attendanceService.js";
 import { ApiError, successResponse } from "../utils/apiResponse.js";
 
 class AttendanceController {
+  constructor() {
+    this.getDateFilters = this.getDateFilters.bind(this);
+    this.createAttendance = this.createAttendance.bind(this);
+    this.getAllAttendances = this.getAllAttendances.bind(this);
+    this.getAttendanceById = this.getAttendanceById.bind(this);
+    this.getAttendanceByUserId = this.getAttendanceByUserId.bind(this);
+    this.updateAttendance = this.updateAttendance.bind(this);
+    this.deleteAttendance = this.deleteAttendance.bind(this);
+  }
+
   getDateFilters(query) {
     return attendanceService.buildDateFilter({
       date: query.date,
