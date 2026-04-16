@@ -11,6 +11,32 @@ import CardMember from "../models/CardMember.js";
 import Payment from "../models/Payment.js";
 
 class CardService {
+  addTotalMembers(card) {
+    const cardObject = card?.toObject ? card.toObject() : card;
+
+    if (!cardObject) {
+      return cardObject;
+    }
+
+    const memberCount = Number(cardObject.totalMember) || 0;
+
+    return {
+      ...cardObject,
+      totalMembers: 1 + memberCount,
+    };
+  }
+
+  addTotalMembersToResult(result) {
+    if (!result || !Array.isArray(result.cards)) {
+      return result;
+    }
+
+    return {
+      ...result,
+      cards: result.cards.map((card) => this.addTotalMembers(card)),
+    };
+  }
+
   normalizeCardOptionalFields(cardData = {}) {
     const normalized = { ...cardData };
 
@@ -48,6 +74,10 @@ class CardService {
     // Extract members array and payment data from cardData
     const normalizedCardData = this.normalizeCardOptionalFields(cardData);
     const { members, payment, ...cardInfo } = normalizedCardData;
+    const normalizedMembers = Array.isArray(members) ? members : [];
+
+    // Keep member count authoritative on server side.
+    cardInfo.totalMember = normalizedMembers.length;
 
     // Check if phone number is already registered
     const existingCardByContact = await cardRepository.findByContact(
@@ -90,22 +120,17 @@ class CardService {
     }
 
     // If members or payment data is provided, use transaction to create atomically
-    if ((members && Array.isArray(members) && members.length > 0) || payment) {
+    if (normalizedMembers.length > 0 || payment) {
       const session = await mongoose.startSession();
       session.startTransaction();
 
       try {
-        // Set totalMember count if members provided
-        if (members && Array.isArray(members) && members.length > 0) {
-          cardInfo.totalMember = members.length;
-        }
-
         // Create card
         const [card] = await Card.create([cardInfo], { session });
 
         // Create members with cardId reference if provided
-        if (members && Array.isArray(members) && members.length > 0) {
-          const membersWithCardId = members.map((member) => ({
+        if (normalizedMembers.length > 0) {
+          const membersWithCardId = normalizedMembers.map((member) => ({
             ...member,
             cardId: card._id,
           }));
@@ -216,7 +241,7 @@ class CardService {
       throw new ApiError(404, "Card not found");
     }
 
-    return card;
+    return this.addTotalMembers(card);
   }
 
   /**
@@ -229,7 +254,7 @@ class CardService {
       throw new ApiError(404, "Card not found");
     }
 
-    return card;
+    return this.addTotalMembers(card);
   }
 
   /**
@@ -245,8 +270,10 @@ class CardService {
     // Get card members without cardId population for cleaner response
     const members = await cardMemberRepository.findByCardIdSimple(card._id);
 
+    const cardWithTotalMembers = this.addTotalMembers(card);
+
     return {
-      ...card.toObject(),
+      ...cardWithTotalMembers,
       members,
     };
   }
@@ -255,14 +282,16 @@ class CardService {
    * Get all cards
    */
   async getAllCards(filters, options) {
-    return await cardRepository.findAll(filters, options);
+    const result = await cardRepository.findAll(filters, options);
+    return this.addTotalMembersToResult(result);
   }
 
   /**
    * Get cards by creator
    */
   async getCardsByCreator(createdBy, options) {
-    return await cardRepository.findByCreatedBy(createdBy, options);
+    const result = await cardRepository.findByCreatedBy(createdBy, options);
+    return this.addTotalMembersToResult(result);
   }
 
   /**
@@ -285,7 +314,7 @@ class CardService {
       throw new ApiError(404, "Card not found");
     }
 
-    return card;
+    return this.addTotalMembers(card);
   }
 
   /**
@@ -298,7 +327,7 @@ class CardService {
       throw new ApiError(404, "Card not found");
     }
 
-    return card;
+    return this.addTotalMembers(card);
   }
 
   /**
@@ -327,7 +356,7 @@ class CardService {
 
     const updatedCard = await cardRepository.updateById(id, updateData);
 
-    return updatedCard;
+    return this.addTotalMembers(updatedCard);
   }
 
   /**
@@ -357,7 +386,7 @@ class CardService {
     const members = await cardMemberRepository.findByCardId(id);
 
     return {
-      ...card.toObject(),
+      ...card,
       members,
     };
   }
@@ -397,10 +426,10 @@ class CardService {
 
     const cardIds = result.cards.map((card) => card._id);
     if (cardIds.length === 0) {
-      return {
+      return this.addTotalMembersToResult({
         ...result,
         cards: [],
-      };
+      });
     }
 
     const members = await CardMember.find({
@@ -418,7 +447,7 @@ class CardService {
     }, {});
 
     const cardsWithMembers = result.cards.map((card) => {
-      const cardObject = card.toObject ? card.toObject() : card;
+      const cardObject = this.addTotalMembers(card);
       return {
         ...cardObject,
         members: membersByCardId[card._id.toString()] || [],
@@ -445,10 +474,10 @@ class CardService {
 
     const cardIds = result.cards.map((card) => card._id);
     if (cardIds.length === 0) {
-      return {
+      return this.addTotalMembersToResult({
         ...result,
         cards: [],
-      };
+      });
     }
 
     const members = await CardMember.find({
@@ -466,7 +495,7 @@ class CardService {
     }, {});
 
     const cardsWithMembers = result.cards.map((card) => {
-      const cardObject = card.toObject ? card.toObject() : card;
+      const cardObject = this.addTotalMembers(card);
       return {
         ...cardObject,
         members: membersByCardId[card._id.toString()] || [],
