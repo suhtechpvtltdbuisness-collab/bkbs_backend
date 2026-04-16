@@ -64,6 +64,10 @@ const cardSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    campId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Camp",
+    },
     aadhaarNumber: {
       type: String,
       trim: true,

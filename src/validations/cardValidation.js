@@ -23,6 +23,7 @@ export const createCardSchema = Joi.object({
   religion: Joi.string().optional().allow(""),
   dob: Joi.string().optional().allow(""),
   pincode: Joi.string().optional().allow(""),
+  campId: Joi.string().optional().allow(""),
   aadhaarNumber: Joi.string()
     .pattern(/^\d{12}$/)
     .optional()
@@ -110,6 +111,7 @@ export const updateCardSchema = Joi.object({
   religion: Joi.string().optional().allow(""),
   dob: Joi.string().optional().allow(""),
   pincode: Joi.string().optional().allow(""),
+  campId: Joi.string().optional().allow(""),
   aadhaarNumber: Joi.string()
     .pattern(/^\d{12}$/)
     .optional()

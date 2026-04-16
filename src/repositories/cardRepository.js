@@ -7,15 +7,22 @@ class CardRepository {
   }
 
   async findById(id) {
-    return await Card.findById(id).populate("createdBy");
+    return await Card.findById(id)
+      .populate("createdBy")
+      .populate("campId", "name lat long city state date");
   }
 
   async findByApplicationId(applicationId) {
-    return await Card.findOne({ applicationId }).populate("createdBy");
+    return await Card.findOne({ applicationId })
+      .populate("createdBy")
+      .populate("campId", "name lat long city state date");
   }
 
   async findByCardNo(cardNo) {
-    return await Card.findOne({ applicationId: cardNo });
+    return await Card.findOne({ applicationId: cardNo }).populate(
+      "campId",
+      "name lat long city state date",
+    );
   }
 
   async findAll(filters = {}, options = {}) {
@@ -28,6 +35,7 @@ class CardRepository {
 
     const cards = await Card.find(query)
       .populate("createdBy")
+      .populate("campId", "name lat long city state date")
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -50,7 +58,9 @@ class CardRepository {
       id,
       { $set: updateData },
       { new: true, runValidators: true },
-    ).populate("createdBy");
+    )
+      .populate("createdBy")
+      .populate("campId", "name lat long city state date");
   }
 
   async softDeleteById(id) {
@@ -80,6 +90,7 @@ class CardRepository {
 
     const cards = await Card.find({ createdBy, isDeleted: false })
       .populate("createdBy")
+      .populate("campId", "name lat long city state date")
       .sort(sort)
       .skip(skip)
       .limit(limit);

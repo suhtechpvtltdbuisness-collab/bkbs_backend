@@ -100,6 +100,13 @@ class CardService {
           : normalized.religion;
     }
 
+    if (Object.hasOwn(normalized, "campId")) {
+      if (typeof normalized.campId === "string") {
+        const trimmedCampId = normalized.campId.trim();
+        normalized.campId = trimmedCampId || undefined;
+      }
+    }
+
     return normalized;
   }
 
@@ -253,7 +260,10 @@ class CardService {
         session.endSession();
 
         // Return card with populated members and payment
-        const cardWithData = await Card.findById(card._id);
+        const cardWithData = await Card.findById(card._id).populate(
+          "campId",
+          "name lat long city state date",
+        );
         const cardMembers = await CardMember.find({ cardId: card._id });
         const cardPayment = paymentRecord
           ? await Payment.findById(paymentRecord._id)
