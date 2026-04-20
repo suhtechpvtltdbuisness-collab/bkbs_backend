@@ -2,13 +2,23 @@ import reportService from "../services/reportService.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
 class ReportController {
+  getRequester(req) {
+    return {
+      userId: req.user?.userId,
+      role: req.user?.role,
+    };
+  }
+
   /**
    * Get daily report
    * Query: ?date=YYYY-MM-DD (optional)
    */
   async getDailyReport(req, res, next) {
     try {
-      const report = await reportService.getDailyReport(req.query.date);
+      const report = await reportService.getDailyReport(
+        req.query.date,
+        this.getRequester(req),
+      );
 
       res
         .status(200)
@@ -29,6 +39,7 @@ class ReportController {
       const report = await reportService.getMonthlyReport(
         req.query.year,
         req.query.month,
+        this.getRequester(req),
       );
 
       res
@@ -47,7 +58,10 @@ class ReportController {
    */
   async getYearlyReport(req, res, next) {
     try {
-      const report = await reportService.getYearlyReport(req.query.year);
+      const report = await reportService.getYearlyReport(
+        req.query.year,
+        this.getRequester(req),
+      );
 
       res
         .status(200)
@@ -67,7 +81,7 @@ class ReportController {
    */
   async getKeySummary(req, res, next) {
     try {
-      const summary = await reportService.getKeySummary();
+      const summary = await reportService.getKeySummary(this.getRequester(req));
       res
         .status(200)
         .json(
@@ -84,7 +98,10 @@ class ReportController {
    */
   async getMonthlyTrend(req, res, next) {
     try {
-      const data = await reportService.getMonthlyTrend(req.query.year);
+      const data = await reportService.getMonthlyTrend(
+        req.query.year,
+        this.getRequester(req),
+      );
       res
         .status(200)
         .json(
@@ -101,7 +118,7 @@ class ReportController {
    */
   async getCardsByStatus(req, res, next) {
     try {
-      const data = await reportService.getCardsByStatus();
+      const data = await reportService.getCardsByStatus(this.getRequester(req));
       res
         .status(200)
         .json(
@@ -118,7 +135,9 @@ class ReportController {
    */
   async getAgeGroupDistribution(req, res, next) {
     try {
-      const data = await reportService.getAgeGroupDistribution();
+      const data = await reportService.getAgeGroupDistribution(
+        this.getRequester(req),
+      );
       res
         .status(200)
         .json(
@@ -139,7 +158,10 @@ class ReportController {
    */
   async getLocationDistribution(req, res, next) {
     try {
-      const data = await reportService.getLocationDistribution(req.query.limit);
+      const data = await reportService.getLocationDistribution(
+        req.query.limit,
+        this.getRequester(req),
+      );
       res
         .status(200)
         .json(
@@ -160,7 +182,10 @@ class ReportController {
    */
   async getEmployeePerformance(req, res, next) {
     try {
-      const data = await reportService.getEmployeePerformance(req.query.limit);
+      const data = await reportService.getEmployeePerformance(
+        req.query.limit,
+        this.getRequester(req),
+      );
       res
         .status(200)
         .json(

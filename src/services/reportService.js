@@ -2,6 +2,7 @@ import Card from "../models/Card.js";
 import Donation from "../models/Donation.js";
 import Organization from "../models/Organization.js";
 import Employee from "../models/Employee.js";
+import mongoose from "mongoose";
 import { ApiError } from "../utils/apiResponse.js";
 
 const MONTH_NAMES = [
@@ -22,6 +23,40 @@ const MONTH_NAMES = [
 const AGE_GROUPS = ["0-18", "19-35", "36-50", "51-65", "65+"];
 
 class ReportService {
+  getRequestScope(authUser) {
+    const isEmployee = authUser?.role === "employee";
+
+    if (!isEmployee) {
+      return { isEmployee: false };
+    }
+
+    if (!authUser?.userId) {
+      throw new ApiError(401, "Invalid authenticated user");
+    }
+
+    const createdByValues = [authUser.userId];
+
+    if (mongoose.Types.ObjectId.isValid(authUser.userId)) {
+      createdByValues.push(new mongoose.Types.ObjectId(authUser.userId));
+    }
+
+    return {
+      isEmployee: true,
+      userId: authUser.userId,
+      cardCreatedByFilter: { $in: createdByValues },
+    };
+  }
+
+  getCardBaseMatch(scope) {
+    const baseMatch = { isDeleted: false };
+
+    if (scope.isEmployee) {
+      baseMatch.createdBy = scope.cardCreatedByFilter;
+    }
+
+    return baseMatch;
+  }
+
   parseDailyRange(dateString) {
     if (!dateString) {
       const now = new Date();
@@ -82,8 +117,28 @@ class ReportService {
     return { start, end, period: String(year) };
   }
 
-  async buildReport(start, end, period, reportType) {
+  async buildReport(start, end, period, reportType, authUser) {
+    const scope = this.getRequestScope(authUser);
     const rangeFilter = { createdAt: { $gte: start, $lt: end } };
+    const cardRangeFilter = {
+      ...this.getCardBaseMatch(scope),
+      ...rangeFilter,
+    };
+    const organizationRangeFilter = scope.isEmployee
+      ? {
+          ...rangeFilter,
+          isDeleted: false,
+          createdBy: scope.userId,
+        }
+      : { ...rangeFilter, isDeleted: false };
+
+    const employeeCountPromise = scope.isEmployee
+      ? Promise.resolve(0)
+      : Employee.countDocuments(rangeFilter);
+
+    const donationCountPromise = scope.isEmployee
+      ? Promise.resolve(0)
+      : Donation.countDocuments({ ...rangeFilter, isDeleted: false });
 
     const [
       totalCards,
@@ -93,20 +148,18 @@ class ReportService {
       totalDonations,
       totalEmployees,
     ] = await Promise.all([
-      Card.countDocuments({ ...rangeFilter, isDeleted: false }),
+      Card.countDocuments(cardRangeFilter),
       Card.countDocuments({
-        ...rangeFilter,
-        isDeleted: false,
+        ...cardRangeFilter,
         status: { $in: ["approved", "active"] },
       }),
       Card.countDocuments({
-        ...rangeFilter,
-        isDeleted: false,
+        ...cardRangeFilter,
         status: "pending",
       }),
-      Organization.countDocuments({ ...rangeFilter, isDeleted: false }),
-      Donation.countDocuments({ ...rangeFilter, isDeleted: false }),
-      Employee.countDocuments(rangeFilter),
+      Organization.countDocuments(organizationRangeFilter),
+      donationCountPromise,
+      employeeCountPromise,
     ]);
 
     return {
@@ -127,19 +180,19 @@ class ReportService {
     };
   }
 
-  async getDailyReport(dateString) {
+  async getDailyReport(dateString, authUser) {
     const { start, end, period } = this.parseDailyRange(dateString);
-    return await this.buildReport(start, end, period, "daily");
+    return await this.buildReport(start, end, period, "daily", authUser);
   }
 
-  async getMonthlyReport(year, month) {
+  async getMonthlyReport(year, month, authUser) {
     const { start, end, period } = this.parseMonthlyRange(year, month);
-    return await this.buildReport(start, end, period, "monthly");
+    return await this.buildReport(start, end, period, "monthly", authUser);
   }
 
-  async getYearlyReport(year) {
+  async getYearlyReport(year, authUser) {
     const { start, end, period } = this.parseYearlyRange(year);
-    return await this.buildReport(start, end, period, "yearly");
+    return await this.buildReport(start, end, period, "yearly", authUser);
   }
 
   // ─── PDF Analytics ────────────────────────────────────────────────────────
@@ -148,22 +201,24 @@ class ReportService {
    * Section 1 – Key Summary
    * Returns total cards, verified, pending, and cards expiring within 30 days
    */
-  async getKeySummary() {
+  async getKeySummary(authUser) {
+    const scope = this.getRequestScope(authUser);
+    const cardMatch = this.getCardBaseMatch(scope);
     const now = new Date();
     const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const [totalCards, verifiedCards, pendingCards, expiringSoonResult] =
       await Promise.all([
-        Card.countDocuments({ isDeleted: false }),
+        Card.countDocuments(cardMatch),
         Card.countDocuments({
-          isDeleted: false,
+          ...cardMatch,
           status: { $in: ["approved", "active"] },
         }),
-        Card.countDocuments({ isDeleted: false, status: "pending" }),
+        Card.countDocuments({ ...cardMatch, status: "pending" }),
         Card.aggregate([
           {
             $match: {
-              isDeleted: false,
+              ...cardMatch,
               status: { $in: ["approved", "active"] },
               cardExpiredDate: { $exists: true, $nin: [null, ""] },
             },
@@ -189,7 +244,7 @@ class ReportService {
       ]);
 
     const rejectedCards = await Card.countDocuments({
-      isDeleted: false,
+      ...cardMatch,
       status: "rejected",
     });
 
@@ -206,7 +261,9 @@ class ReportService {
    * Section 2 – Monthly Trend
    * Month-by-month count of new cards issued for the given year
    */
-  async getMonthlyTrend(yearInput) {
+  async getMonthlyTrend(yearInput, authUser) {
+    const scope = this.getRequestScope(authUser);
+    const cardMatch = this.getCardBaseMatch(scope);
     const now = new Date();
     const year = yearInput ? parseInt(yearInput, 10) : now.getUTCFullYear();
 
@@ -218,7 +275,12 @@ class ReportService {
     const end = new Date(Date.UTC(year + 1, 0, 1));
 
     const rows = await Card.aggregate([
-      { $match: { isDeleted: false, createdAt: { $gte: start, $lt: end } } },
+      {
+        $match: {
+          ...cardMatch,
+          createdAt: { $gte: start, $lt: end },
+        },
+      },
       { $group: { _id: { $month: "$createdAt" }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
     ]);
@@ -235,9 +297,11 @@ class ReportService {
    * Section 3 – Cards by Status
    * Count and percentage for every card status
    */
-  async getCardsByStatus() {
+  async getCardsByStatus(authUser) {
+    const scope = this.getRequestScope(authUser);
+    const cardMatch = this.getCardBaseMatch(scope);
     const rows = await Card.aggregate([
-      { $match: { isDeleted: false } },
+      { $match: cardMatch },
       { $group: { _id: "$status", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
@@ -256,13 +320,15 @@ class ReportService {
    * Section 4 – Age Group Distribution
    * Derived from the dob string field using MongoDB $dateFromString
    */
-  async getAgeGroupDistribution() {
+  async getAgeGroupDistribution(authUser) {
+    const scope = this.getRequestScope(authUser);
+    const cardMatch = this.getCardBaseMatch(scope);
     const now = new Date();
 
     const rows = await Card.aggregate([
       {
         $match: {
-          isDeleted: false,
+          ...cardMatch,
           dob: { $exists: true, $nin: [null, ""] },
         },
       },
@@ -326,7 +392,9 @@ class ReportService {
    * Section 6 – Location-wise Distribution
    * Groups non-deleted cards by pincode, returns top 20
    */
-  async getLocationDistribution(limitInput) {
+  async getLocationDistribution(limitInput, authUser) {
+    const scope = this.getRequestScope(authUser);
+    const cardMatch = this.getCardBaseMatch(scope);
     const limit = limitInput ? parseInt(limitInput, 10) : 20;
 
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
@@ -336,7 +404,7 @@ class ReportService {
     const rows = await Card.aggregate([
       {
         $match: {
-          isDeleted: false,
+          ...cardMatch,
           pincode: { $exists: true, $nin: [null, ""] },
         },
       },
@@ -360,7 +428,13 @@ class ReportService {
    * Section 7 – Employee Performance
    * Cards created per employee, joined with user name, top 20
    */
-  async getEmployeePerformance(limitInput) {
+  async getEmployeePerformance(limitInput, authUser) {
+    const scope = this.getRequestScope(authUser);
+    const cardMatch = this.getCardBaseMatch(scope);
+    const performanceMatch = {
+      ...cardMatch,
+      $and: [{ createdBy: { $ne: null } }, { createdBy: { $ne: "-1" } }],
+    };
     const limit = limitInput ? parseInt(limitInput, 10) : 20;
 
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
@@ -369,10 +443,7 @@ class ReportService {
 
     const rows = await Card.aggregate([
       {
-        $match: {
-          isDeleted: false,
-          createdBy: { $nin: ["-1", null] },
-        },
+        $match: performanceMatch,
       },
       { $group: { _id: "$createdBy", cardsIssued: { $sum: 1 } } },
       { $sort: { cardsIssued: -1 } },

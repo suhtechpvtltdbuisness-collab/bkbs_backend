@@ -4,9 +4,9 @@ import { authenticate, authorize } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// All report routes require authentication + admin role
+// All report routes require authentication
 router.use(authenticate);
-router.use(authorize("admin"));
+router.use(authorize("admin", "employee"));
 
 // ─── Range Reports ────────────────────────────────────────────────────────────
 // GET /api/reports/daily?date=YYYY-MM-DD
