@@ -1,14 +1,12 @@
 import reportService from "../services/reportService.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
-class ReportController {
-  getRequester(req) {
-    return {
-      userId: req.user?.userId,
-      role: req.user?.role,
-    };
-  }
+const getRequester = (req) => ({
+  userId: req.user?.userId,
+  role: req.user?.role,
+});
 
+class ReportController {
   /**
    * Get daily report
    * Query: ?date=YYYY-MM-DD (optional)
@@ -17,7 +15,7 @@ class ReportController {
     try {
       const report = await reportService.getDailyReport(
         req.query.date,
-        this.getRequester(req),
+        getRequester(req),
       );
 
       res
@@ -39,7 +37,7 @@ class ReportController {
       const report = await reportService.getMonthlyReport(
         req.query.year,
         req.query.month,
-        this.getRequester(req),
+        getRequester(req),
       );
 
       res
@@ -60,7 +58,7 @@ class ReportController {
     try {
       const report = await reportService.getYearlyReport(
         req.query.year,
-        this.getRequester(req),
+        getRequester(req),
       );
 
       res
@@ -81,7 +79,7 @@ class ReportController {
    */
   async getKeySummary(req, res, next) {
     try {
-      const summary = await reportService.getKeySummary(this.getRequester(req));
+      const summary = await reportService.getKeySummary(getRequester(req));
       res
         .status(200)
         .json(
@@ -100,7 +98,7 @@ class ReportController {
     try {
       const data = await reportService.getMonthlyTrend(
         req.query.year,
-        this.getRequester(req),
+        getRequester(req),
       );
       res
         .status(200)
@@ -118,7 +116,7 @@ class ReportController {
    */
   async getCardsByStatus(req, res, next) {
     try {
-      const data = await reportService.getCardsByStatus(this.getRequester(req));
+      const data = await reportService.getCardsByStatus(getRequester(req));
       res
         .status(200)
         .json(
@@ -136,7 +134,7 @@ class ReportController {
   async getAgeGroupDistribution(req, res, next) {
     try {
       const data = await reportService.getAgeGroupDistribution(
-        this.getRequester(req),
+        getRequester(req),
       );
       res
         .status(200)
@@ -160,7 +158,7 @@ class ReportController {
     try {
       const data = await reportService.getLocationDistribution(
         req.query.limit,
-        this.getRequester(req),
+        getRequester(req),
       );
       res
         .status(200)
@@ -184,7 +182,7 @@ class ReportController {
     try {
       const data = await reportService.getEmployeePerformance(
         req.query.limit,
-        this.getRequester(req),
+        getRequester(req),
       );
       res
         .status(200)
