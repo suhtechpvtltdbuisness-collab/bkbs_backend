@@ -33,12 +33,7 @@ router.post(
 // Admin routes
 router.get("/", authenticate, authorize("admin"), userController.getAllUsers);
 
-router.get(
-  "/:id",
-  authenticate,
-  authorize("admin"),
-  userController.getUserById,
-);
+router.get("/:id", authenticate, userController.getUserById);
 
 router.delete(
   "/:id",
