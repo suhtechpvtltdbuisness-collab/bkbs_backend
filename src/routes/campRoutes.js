@@ -16,7 +16,7 @@ router.get("/:id", campController.getCampById);
 
 router.post(
   "/",
-  authorize("admin", "editor"),
+  authorize("admin", "editor", "employee"),
   validate(createCampSchema),
   campController.createCamp,
 );
