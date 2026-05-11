@@ -532,7 +532,6 @@ class CardService {
       page,
       limit,
       sort: { createdAt: -1 },
-      select: "-documents",
       allowDiskUse: true,
     });
 
