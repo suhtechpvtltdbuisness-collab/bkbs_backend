@@ -528,7 +528,13 @@ class CardService {
       isPrint: true,
     };
 
-    const result = await cardRepository.findAll(filters, { page, limit });
+    const result = await cardRepository.findAll(filters, {
+      page,
+      limit,
+      sort: { createdAt: -1 },
+      select: "-documents",
+      allowDiskUse: true,
+    });
 
     const cardIds = result.cards.map((card) => card._id);
     if (cardIds.length === 0) {

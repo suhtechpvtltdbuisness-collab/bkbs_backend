@@ -26,19 +26,35 @@ class CardRepository {
   }
 
   async findAll(filters = {}, options = {}) {
-    const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+    const {
+      page = 1,
+      limit = 10,
+      sort = { createdAt: -1 },
+      select,
+      allowDiskUse = false,
+    } = options;
 
     const skip = (page - 1) * limit;
 
     // Default filter to exclude deleted cards
     const query = { ...filters, isDeleted: false };
 
-    const cards = await Card.find(query)
+    let cardQuery = Card.find(query)
       .populate("createdBy")
       .populate("campId", "name lat long city state date")
       .sort(sort)
       .skip(skip)
       .limit(limit);
+
+    if (select) {
+      cardQuery = cardQuery.select(select);
+    }
+
+    if (allowDiskUse) {
+      cardQuery = cardQuery.allowDiskUse(true);
+    }
+
+    const cards = await cardQuery;
 
     const total = await Card.countDocuments(query);
 
