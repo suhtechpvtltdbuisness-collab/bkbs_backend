@@ -157,6 +157,8 @@ cardSchema.index(
   },
 );
 
+cardSchema.index({ isDeleted: 1, isPrint: 1, createdAt: -1 });
+
 const Card = mongoose.model("Card", cardSchema);
 
 export default Card;
