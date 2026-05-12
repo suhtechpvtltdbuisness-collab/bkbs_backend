@@ -103,6 +103,7 @@ class CardService {
       { lastName: regex },
       { contact: regex },
       { alternateContact: regex },
+      { pincode: regex },
     ];
 
     if (mongoose.Types.ObjectId.isValid(term)) {
