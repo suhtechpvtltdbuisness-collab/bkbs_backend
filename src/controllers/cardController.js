@@ -138,6 +138,10 @@ class CardController {
         filters.status = req.query.status;
       }
 
+      if (req.query.search) {
+        filters.search = req.query.search;
+      }
+
       // Role-based filtering
       // If user is not admin, only show cards they created
       if (req.user.role !== "admin") {
@@ -272,7 +276,11 @@ class CardController {
   async getAllVerifiedCards(req, res, next) {
     try {
       const { page, limit } = paginate(req.query.page, req.query.limit);
-      const result = await cardService.getAllVerifiedCards({ page, limit });
+      const result = await cardService.getAllVerifiedCards({
+        page,
+        limit,
+        search: req.query.search,
+      });
 
       res
         .status(200)
@@ -290,7 +298,11 @@ class CardController {
   async getAllPrintedCards(req, res, next) {
     try {
       const { page, limit } = paginate(req.query.page, req.query.limit);
-      const result = await cardService.getAllPrintedCards({ page, limit });
+      const result = await cardService.getAllPrintedCards({
+        page,
+        limit,
+        search: req.query.search,
+      });
 
       res
         .status(200)
