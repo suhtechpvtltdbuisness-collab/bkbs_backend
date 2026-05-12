@@ -83,6 +83,48 @@ class CardService {
     };
   }
 
+  buildCardSearchFilter(searchTerm) {
+    if (typeof searchTerm !== "string") {
+      return {};
+    }
+
+    const term = searchTerm.trim();
+    if (!term) {
+      return {};
+    }
+
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = { $regex: escapedTerm, $options: "i" };
+    const orConditions = [
+      { applicationId: regex },
+      { cardNo: regex },
+      { firstName: regex },
+      { middleName: regex },
+      { lastName: regex },
+      { contact: regex },
+      { alternateContact: regex },
+    ];
+
+    if (mongoose.Types.ObjectId.isValid(term)) {
+      orConditions.push({ _id: new mongoose.Types.ObjectId(term) });
+    }
+
+    return { $or: orConditions };
+  }
+
+  applyCardSearchFilters(filters = {}) {
+    const { search, ...rest } = filters;
+
+    if (!search) {
+      return rest;
+    }
+
+    return {
+      ...rest,
+      ...this.buildCardSearchFilter(search),
+    };
+  }
+
   normalizeCardOptionalFields(cardData = {}) {
     const normalized = { ...cardData };
 
@@ -339,7 +381,10 @@ class CardService {
    * Get all cards
    */
   async getAllCards(filters, options) {
-    const result = await cardRepository.findAll(filters, options);
+    const result = await cardRepository.findAll(
+      this.applyCardSearchFilters(filters),
+      options,
+    );
     return await this.addTotalMembersToResult(result);
   }
 
@@ -471,13 +516,14 @@ class CardService {
    * Get all verified (not printed) cards
    */
   async getAllVerifiedCards(options = {}) {
-    const { page = 1, limit = 10 } = options;
+    const { page = 1, limit = 10, search } = options;
 
     // Query for cards where isPrint is false
-    const filters = {
+    const filters = this.applyCardSearchFilters({
       isPrint: false,
       status: { $in: ["approved", "active"] }, // Only approved or active cards
-    };
+      search,
+    });
 
     const result = await cardRepository.findAll(filters, { page, limit });
 
@@ -522,11 +568,12 @@ class CardService {
    * Get all printed cards
    */
   async getAllPrintedCards(options = {}) {
-    const { page = 1, limit = 10 } = options;
+    const { page = 1, limit = 10, search } = options;
 
-    const filters = {
+    const filters = this.applyCardSearchFilters({
       isPrint: true,
-    };
+      search,
+    });
 
     const result = await cardRepository.findAll(filters, {
       page,
