@@ -178,6 +178,25 @@ class CardController {
   }
 
   /**
+   * Get cards created by a specific employee
+   */
+  async getCardsByEmployee(req, res, next) {
+    try {
+      const { page, limit } = paginate(req.query.page, req.query.limit);
+      const result = await cardService.getCardsByCreator(req.params.employeeId, {
+        page,
+        limit,
+      });
+
+      res
+        .status(200)
+        .json(new ApiResponse(200, result, "Cards retrieved successfully"));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Update card
    */
   async updateCard(req, res, next) {
