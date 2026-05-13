@@ -11,15 +11,15 @@ router.use(authenticate);
 // GET /api/attendance/:id (authenticated users)
 router.get(
   "/:id",
-  authorize("admin", "employee", "user"),
+  authorize("admin", "employee", "editor", "user"),
   attendanceController.getAttendanceById,
 );
 
-// POST /api/attendance (employee only)
+// POST /api/attendance (employee & editor)
 // Body: { campId, currentLat, currentLong }
 router.post(
   "/",
-  authorize("employee"),
+  authorize("employee", "editor"),
   validate(createAttendanceSchema),
   attendanceController.createAttendance,
 );
@@ -32,7 +32,7 @@ router.get("/", authorize("admin"), attendanceController.getAllAttendances);
 // Query params: date=YYYY-MM-DD or fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD
 router.get(
   "/users/:id",
-  authorize("admin", "employee", "user"),
+  authorize("admin", "employee", "editor", "user"),
   attendanceController.getAttendanceByUserId,
 );
 
