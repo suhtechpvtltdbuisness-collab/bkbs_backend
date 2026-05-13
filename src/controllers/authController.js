@@ -8,14 +8,7 @@ import { getClientIp, getUserAgent } from "../utils/helpers.js";
  * @access  Public
  */
 export const register = asyncHandler(async (req, res) => {
-  const { username, email, password, role } = req.body;
-
-  const result = await authService.register({
-    username,
-    email,
-    password,
-    role,
-  });
+  const result = await authService.register(req.body);
 
   // Set refresh token in httpOnly cookie
   res.cookie("refreshToken", result.refreshToken, {

@@ -107,6 +107,46 @@ class AttendanceService {
     return await attendanceRepository.create(payload);
   }
 
+  async checkoutAttendance(attendanceData, userId) {
+    const camp = await campRepository.findById(attendanceData.campId);
+
+    if (!camp || camp.isDeleted) {
+      throw new ApiError(404, "Camp not found");
+    }
+
+    const distance = this.distanceInMeters(
+      Number(attendanceData.currentLat),
+      Number(attendanceData.currentLong),
+      Number(camp.lat),
+      Number(camp.long),
+    );
+
+    if (distance > 400) {
+      throw new ApiError(
+        400,
+        "Checkout can only be marked within 400 meters of the camp",
+      );
+    }
+
+    const existing = await attendanceRepository.findLatestOpenCheckoutToday(
+      userId,
+      attendanceData.campId,
+    );
+
+    if (!existing) {
+      throw new ApiError(
+        404,
+        "No active check-in found for today at this camp",
+      );
+    }
+
+    return await attendanceRepository.updateById(existing._id.toString(), {
+      checkoutLat: Number(attendanceData.currentLat),
+      checkoutLong: Number(attendanceData.currentLong),
+      checkoutAt: new Date(),
+    });
+  }
+
   async getAllAttendances(filters = {}, options = {}) {
     return await attendanceRepository.findAll(filters, options);
   }

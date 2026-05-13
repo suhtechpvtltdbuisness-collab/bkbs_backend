@@ -8,10 +8,10 @@ export const registerSchema = Joi.object({
   }),
 
   role: Joi.string()
-    .valid("user", "admin", "moderator", "employee")
+    .valid("user", "admin", "moderator", "employee", "editor")
     .required()
     .messages({
-      "any.only": "Role must be one of: user, admin, moderator, employee",
+      "any.only": "Role must be one of: user, admin, moderator, employee, editor",
       "any.required": "Role is required",
     }),
 

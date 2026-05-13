@@ -8,11 +8,13 @@ const router = express.Router();
 
 router.use(authenticate);
 
-// GET /api/attendance/:id (authenticated users)
-router.get(
-  "/:id",
-  authorize("admin", "employee", "editor", "user"),
-  attendanceController.getAttendanceById,
+// POST /api/attendance/checkout (employee & editor)
+// Body: { campId, currentLat, currentLong }
+router.post(
+  "/checkout",
+  authorize("employee", "editor"),
+  validate(createAttendanceSchema),
+  attendanceController.checkoutAttendance,
 );
 
 // POST /api/attendance (employee & editor)
@@ -34,6 +36,13 @@ router.get(
   "/users/:id",
   authorize("admin", "employee", "editor", "user"),
   attendanceController.getAttendanceByUserId,
+);
+
+// GET /api/attendance/:id (authenticated users)
+router.get(
+  "/:id",
+  authorize("admin", "employee", "editor", "user"),
+  attendanceController.getAttendanceById,
 );
 
 // PUT /api/attendance/:id (admin only)
