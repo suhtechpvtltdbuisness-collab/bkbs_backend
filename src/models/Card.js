@@ -60,6 +60,10 @@ const cardSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    gender: {
+      type: String,
+      trim: true,
+    },
     pincode: {
       type: String,
       trim: true,

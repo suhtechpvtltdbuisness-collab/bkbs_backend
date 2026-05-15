@@ -153,6 +153,46 @@ class CardService {
     return normalized;
   }
 
+  normalizeMembersInput(members = []) {
+    if (!Array.isArray(members)) {
+      return [];
+    }
+
+    return members
+      .filter((member) => member && typeof member === "object")
+      .map((member) => ({
+        name: member.name,
+        relation: member.relation,
+        age: Number(member.age),
+        documentId: member.documentId ?? member.docId ?? "",
+      }));
+  }
+
+  applyVerificationDateRules(existingCard, updateData = {}) {
+    const normalized = { ...updateData };
+    const verifiedStatuses = ["approved", "active"];
+
+    if (Object.hasOwn(normalized, "status")) {
+      if (verifiedStatuses.includes(normalized.status)) {
+        if (!normalized.verificationDate) {
+          normalized.verificationDate = new Date().toISOString().split("T")[0];
+        }
+      } else {
+        normalized.verificationDate = "";
+      }
+      return normalized;
+    }
+
+    if (
+      Object.hasOwn(normalized, "verificationDate") &&
+      !verifiedStatuses.includes(existingCard?.status)
+    ) {
+      delete normalized.verificationDate;
+    }
+
+    return normalized;
+  }
+
   /**
    * Create new card with optional members and payment
    * Only employee, editor, or admin roles can create cards
@@ -170,7 +210,7 @@ class CardService {
     // Extract members array and payment data from cardData
     const normalizedCardData = this.normalizeCardOptionalFields(cardData);
     const { members, payment, ...cardInfo } = normalizedCardData;
-    const normalizedMembers = Array.isArray(members) ? members : [];
+    const normalizedMembers = this.normalizeMembersInput(members);
 
     // Keep member count authoritative on server side.
     cardInfo.totalMember = normalizedMembers.length;
@@ -410,21 +450,85 @@ class CardService {
       throw new ApiError(400, "Created by cannot be updated");
     }
 
+    const existingCard = await cardRepository.findById(id);
+    if (!existingCard || existingCard.isDeleted) {
+      throw new ApiError(404, "Card not found");
+    }
+
     const normalizedUpdateData = this.normalizeCardOptionalFields(updateData);
-    const card = await cardRepository.updateById(id, normalizedUpdateData);
+    const hasMembersUpdate = Object.hasOwn(normalizedUpdateData, "members");
+    const normalizedMembers = hasMembersUpdate
+      ? this.normalizeMembersInput(normalizedUpdateData.members)
+      : [];
+
+    delete normalizedUpdateData.members;
+
+    const cardUpdateData = this.applyVerificationDateRules(
+      existingCard,
+      normalizedUpdateData,
+    );
+
+    let card;
+
+    if (hasMembersUpdate) {
+      card = await Card.findOneAndUpdate(
+        { _id: id, isDeleted: false },
+        {
+          $set: {
+            ...cardUpdateData,
+            totalMember: normalizedMembers.length,
+          },
+        },
+        { new: true, runValidators: true },
+      );
+
+      if (!card) {
+        throw new ApiError(404, "Card not found");
+      }
+
+      await CardMember.updateMany(
+        { cardId: id, isDeleted: false },
+        { $set: { isDeleted: true } },
+      );
+
+      if (normalizedMembers.length > 0) {
+        const membersWithCardId = normalizedMembers.map((member) => ({
+          ...member,
+          cardId: id,
+        }));
+        await CardMember.insertMany(membersWithCardId);
+      }
+
+      card = await cardRepository.findById(id);
+    } else {
+      card = await cardRepository.updateById(id, cardUpdateData);
+    }
 
     if (!card || card.isDeleted) {
       throw new ApiError(404, "Card not found");
     }
 
-    return await this.addTotalMembersToCard(card);
+    const members = await cardMemberRepository.findByCardIdSimple(id);
+    const cardWithTotals = this.addTotalMembers(card, members.length);
+
+    return {
+      ...cardWithTotals,
+      members,
+    };
   }
 
   /**
    * Update card status
    */
   async updateCardStatus(id, status) {
-    const card = await cardRepository.updateById(id, { status });
+    const updateData = { status };
+    if (["approved", "active"].includes(status)) {
+      updateData.verificationDate = new Date().toISOString().split("T")[0];
+    } else {
+      updateData.verificationDate = "";
+    }
+
+    const card = await cardRepository.updateById(id, updateData);
 
     if (!card || card.isDeleted) {
       throw new ApiError(404, "Card not found");
