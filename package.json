@@ -10,12 +10,15 @@
   },
   "scripts": {
     "start": "node src/server.js",
+    "start:railway": "sh scripts/start-railway.sh",
     "dev": "nodemon src/server.js",
     "build": "echo 'No build step required'",
     "vercel-build": "echo 'Vercel build complete'",
     "migrate": "node src/migrations/runner.js up",
     "migrate:down": "node src/migrations/runner.js down",
-    "seed:admin": "node scripts/seedAdmin.js"
+    "seed:admin": "node scripts/seedAdmin.js",
+    "ocr:service": ".venv-ocr/bin/python scripts/ocr/paddle_ocr_service.py",
+    "ocr:setup": "python3 -m venv .venv-ocr && .venv-ocr/bin/pip install -r requirements-ocr.txt"
   },
   "keywords": [
     "express",
