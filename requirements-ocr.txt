@@ -1,0 +1,5 @@
+paddleocr>=3.5.0
+paddlepaddle>=3.3.0
+rapidocr-onnxruntime>=1.2.0
+flask>=3.0.0
+pillow>=10.0.0
