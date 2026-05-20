@@ -16,7 +16,7 @@ RUN apt-get update \
 COPY package*.json ./
 RUN npm ci --only=production
 
-COPY requirements-ocr-railway.txt requirements-ocr.txt ./
+COPY requirements-ocr-railway.txt ./
 COPY scripts ./scripts
 COPY src ./src
 COPY index.js ./
