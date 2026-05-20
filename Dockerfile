@@ -1,21 +1,38 @@
-FROM node:18-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    wget \
+    libgl1 \
+    libglib2.0-0 \
+    libxcb1 \
+  && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy source code
-COPY . .
+COPY requirements-ocr-railway.txt requirements-ocr.txt ./
+COPY scripts ./scripts
+COPY src ./src
+COPY index.js ./
 
-# Expose port
-EXPOSE 3000
+RUN python3 -m venv .venv-ocr \
+  && .venv-ocr/bin/pip install --no-cache-dir -r requirements-ocr-railway.txt
 
-# Set environment to production
 ENV NODE_ENV=production
+ENV PADDLE_OCR_ENGINE=rapidocr
+ENV PADDLE_OCR_URL=http://127.0.0.1:8090
+ENV PADDLE_OCR_HOST=127.0.0.1
+ENV PADDLE_OCR_PORT=8090
+ENV PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
 
-# Start the application
-CMD ["npm", "start"]
+RUN chmod +x scripts/start-railway.sh
+
+EXPOSE 5000
+
+CMD ["scripts/start-railway.sh"]

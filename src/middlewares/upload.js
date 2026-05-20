@@ -106,6 +106,32 @@ export const uploadDoctorLogo = upload.single("logo");
  */
 export const uploadOrganizationLogo = upload.single("logo");
 
+const aadhaarImageFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error("Invalid file type. Only JPEG and PNG images are allowed."),
+      false,
+    );
+  }
+};
+
+const aadhaarUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: aadhaarImageFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
+/**
+ * Middleware for Aadhaar OCR image upload (front/back)
+ */
+export const uploadAadhaarImage = aadhaarUpload.single("image");
+
 /**
  * Attach uploaded logo path to req.body.logo so Joi validation can include it
  */
@@ -172,6 +198,7 @@ export default {
   uploadSingleFile,
   uploadDoctorLogo,
   uploadOrganizationLogo,
+  uploadAadhaarImage,
   mapUploadedLogoToBody,
   deleteFile,
   getFileUrl,
