@@ -3,21 +3,33 @@ import json
 import os
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 os.environ.setdefault("FLAGS_use_mkldnn", "0")
+os.environ.setdefault("OMP_NUM_THREADS", os.environ.get("OCR_OMP_THREADS", "2"))
+os.environ.setdefault("MKL_NUM_THREADS", os.environ.get("OCR_OMP_THREADS", "2"))
 os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 
 from flask import Flask, jsonify, request
 
+from image_preprocess import preprocess_image_bytes
+
 PORT = int(os.environ.get("PADDLE_OCR_PORT", "8090"))
 HOST = os.environ.get("PADDLE_OCR_HOST", "127.0.0.1")
-ENGINE_MODE = os.environ.get("PADDLE_OCR_ENGINE", "auto").lower()
+ENGINE_MODE = os.environ.get("PADDLE_OCR_ENGINE", "rapidocr").lower()
+DET_LIMIT_SIDE_LEN = int(os.environ.get("OCR_DET_LIMIT_SIDE_LEN", "1280"))
+USE_ANGLE_CLS = os.environ.get("OCR_USE_ANGLE_CLS", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 app = Flask(__name__)
 paddle_engine = None
 rapid_engine = None
 active_engine = None
+_ocr_lock = threading.Lock()
 
 
 def init_paddle_engine():
@@ -32,7 +44,14 @@ def init_rapid_engine():
     global rapid_engine
     from rapidocr_onnxruntime import RapidOCR
 
-    rapid_engine = RapidOCR()
+    rapid_engine = RapidOCR(
+        use_angle_cls=USE_ANGLE_CLS,
+        text_score=0.45,
+        det_model_path="",
+        det_limit_side_len=DET_LIMIT_SIDE_LEN,
+        det_limit_type="max",
+        det_box_thresh=0.45,
+    )
     return "rapidocr-onnx"
 
 
@@ -67,18 +86,34 @@ def parse_paddle_result(result):
 
             for idx, text in enumerate(texts):
                 confidence = float(scores[idx]) if idx < len(scores) else None
-                box = boxes[idx].tolist() if idx < len(boxes) and hasattr(boxes[idx], "tolist") else boxes[idx] if idx < len(boxes) else None
+                box = (
+                    boxes[idx].tolist()
+                    if idx < len(boxes) and hasattr(boxes[idx], "tolist")
+                    else boxes[idx]
+                    if idx < len(boxes)
+                    else None
+                )
                 lines.append({"text": str(text), "confidence": confidence, "box": box})
             continue
 
         if hasattr(page, "json"):
             payload = page.json
             if isinstance(payload, dict):
-                texts = payload.get("res", {}).get("rec_texts") or payload.get("rec_texts") or []
-                scores = payload.get("res", {}).get("rec_scores") or payload.get("rec_scores") or []
+                texts = (
+                    payload.get("res", {}).get("rec_texts")
+                    or payload.get("rec_texts")
+                    or []
+                )
+                scores = (
+                    payload.get("res", {}).get("rec_scores")
+                    or payload.get("rec_scores")
+                    or []
+                )
                 for idx, text in enumerate(texts):
                     confidence = float(scores[idx]) if idx < len(scores) else None
-                    lines.append({"text": str(text), "confidence": confidence, "box": None})
+                    lines.append(
+                        {"text": str(text), "confidence": confidence, "box": None}
+                    )
 
     lines.sort(key=lambda item: (item.get("box") or [[0, 0]])[0][1])
     text = "\n".join(line["text"] for line in lines if line.get("text"))
@@ -116,13 +151,18 @@ def run_ocr(image_path):
     return run_rapid_ocr(image_path)
 
 
+def run_ocr_locked(image_path):
+    with _ocr_lock:
+        return run_ocr(image_path)
+
+
 @app.get("/health")
 def health():
     return jsonify(
         {
             "success": True,
             "engine": active_engine,
-            "message": "Paddle OCR service is running",
+            "message": "OCR service is running",
         }
     )
 
@@ -136,15 +176,20 @@ def ocr():
     if not upload.filename:
         return jsonify({"success": False, "message": "image file is required"}), 400
 
-    suffix = Path(upload.filename).suffix or ".jpg"
     temp_path = None
 
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-            upload.save(temp_file.name)
+        raw_bytes = upload.read()
+        if not raw_bytes:
+            return jsonify({"success": False, "message": "image file is empty"}), 400
+
+        processed_bytes = preprocess_image_bytes(raw_bytes)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(processed_bytes)
             temp_path = temp_file.name
 
-        data = run_ocr(temp_path)
+        data = run_ocr_locked(temp_path)
         return jsonify({"success": True, "data": data})
     except Exception as exc:
         return jsonify({"success": False, "message": str(exc)}), 500
@@ -153,6 +198,7 @@ def ocr():
             os.remove(temp_path)
 
 
+bootstrap_engine()
+
 if __name__ == "__main__":
-    bootstrap_engine()
-    app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
+    app.run(host=HOST, port=PORT, debug=False, use_reloader=False, threaded=True)

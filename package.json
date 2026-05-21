@@ -17,7 +17,7 @@
     "migrate": "node src/migrations/runner.js up",
     "migrate:down": "node src/migrations/runner.js down",
     "seed:admin": "node scripts/seedAdmin.js",
-    "ocr:service": ".venv-ocr/bin/python scripts/ocr/paddle_ocr_service.py",
+    "ocr:service": ".venv-ocr/bin/gunicorn -c scripts/ocr/gunicorn.conf.py --chdir scripts/ocr paddle_ocr_service:app",
     "ocr:setup": "python3 -m venv .venv-ocr && .venv-ocr/bin/pip install -r requirements-ocr.txt"
   },
   "keywords": [

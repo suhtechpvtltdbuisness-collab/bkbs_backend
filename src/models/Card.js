@@ -158,6 +158,8 @@ cardSchema.index(
 );
 
 cardSchema.index({ isDeleted: 1, isPrint: 1, createdAt: -1 });
+cardSchema.index({ isDeleted: 1, isPrint: 1, status: 1, createdAt: -1 });
+cardSchema.index({ isDeleted: 1, createdBy: 1, createdAt: -1 });
 
 const Card = mongoose.model("Card", cardSchema);
 

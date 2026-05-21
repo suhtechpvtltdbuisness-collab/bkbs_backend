@@ -33,6 +33,17 @@ export const authLimiter = rateLimit({
 /**
  * Create account rate limiter
  */
+export const ocrLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number.parseInt(process.env.OCR_RATE_LIMIT_MAX || "20", 10),
+  message: {
+    success: false,
+    message: "Too many OCR requests, please try again later",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const createAccountLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // 3 accounts per hour
@@ -47,5 +58,6 @@ export const createAccountLimiter = rateLimit({
 export default {
   generalLimiter,
   authLimiter,
+  ocrLimiter,
   createAccountLimiter,
 };

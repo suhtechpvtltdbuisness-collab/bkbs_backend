@@ -1,5 +1,12 @@
 import Card from "../models/Card.js";
 
+const LIST_CARD_SELECT =
+  "-documents -__v";
+const LIST_POPULATE = [
+  { path: "createdBy", select: "name role employeeId email" },
+  { path: "campId", select: "name lat long city state date" },
+];
+
 class CardRepository {
   async create(cardData) {
     const card = new Card(cardData);
@@ -25,38 +32,48 @@ class CardRepository {
     );
   }
 
-  async findAll(filters = {}, options = {}) {
+  buildListQuery(filters = {}) {
+    return { ...filters, isDeleted: false };
+  }
+
+  buildListQueryChain(query, options = {}) {
     const {
-      page = 1,
-      limit = 10,
       sort = { createdAt: -1 },
-      select,
+      select = LIST_CARD_SELECT,
       allowDiskUse = false,
     } = options;
 
-    const skip = (page - 1) * limit;
-
-    // Default filter to exclude deleted cards
-    const query = { ...filters, isDeleted: false };
-
     let cardQuery = Card.find(query)
-      .populate("createdBy")
-      .populate("campId", "name lat long city state date")
+      .select(select)
+      .populate(LIST_POPULATE)
       .sort(sort)
-      .skip(skip)
-      .limit(limit);
-
-    if (select) {
-      cardQuery = cardQuery.select(select);
-    }
+      .lean();
 
     if (allowDiskUse) {
       cardQuery = cardQuery.allowDiskUse(true);
     }
 
-    const cards = await cardQuery;
+    return cardQuery;
+  }
 
-    const total = await Card.countDocuments(query);
+  async findAll(filters = {}, options = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      sort = { createdAt: -1 },
+      select = LIST_CARD_SELECT,
+      allowDiskUse = false,
+    } = options;
+
+    const skip = (page - 1) * limit;
+    const query = this.buildListQuery(filters);
+
+    const [cards, total] = await Promise.all([
+      this.buildListQueryChain(query, { sort, select, allowDiskUse })
+        .skip(skip)
+        .limit(limit),
+      Card.countDocuments(query),
+    ]);
 
     return {
       cards,
@@ -103,15 +120,12 @@ class CardRepository {
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
 
     const skip = (page - 1) * limit;
+    const query = { createdBy, isDeleted: false };
 
-    const cards = await Card.find({ createdBy, isDeleted: false })
-      .populate("createdBy")
-      .populate("campId", "name lat long city state date")
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Card.countDocuments({ createdBy, isDeleted: false });
+    const [cards, total] = await Promise.all([
+      this.buildListQueryChain(query, { sort }).skip(skip).limit(limit),
+      Card.countDocuments(query),
+    ]);
 
     return {
       cards,
