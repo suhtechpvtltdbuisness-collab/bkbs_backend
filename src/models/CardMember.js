@@ -36,6 +36,8 @@ const cardMemberSchema = new mongoose.Schema(
   },
 );
 
+cardMemberSchema.index({ cardId: 1, isDeleted: 1 });
+
 const CardMember = mongoose.model("CardMember", cardMemberSchema);
 
 export default CardMember;

@@ -6,15 +6,15 @@ dotenv.config();
 // Configure mongoose for serverless - keep buffering ON but with timeout
 mongoose.set("strictQuery", true);
 mongoose.set("bufferCommands", true);
-mongoose.set("bufferTimeoutMS", 10000);
+mongoose.set(
+  "bufferTimeoutMS",
+  parseInt(process.env.MONGODB_BUFFER_TIMEOUT_MS || "30000", 10),
+);
 
 const connectDB = async () => {
   try {
     // Check if already connected (readyState 1 = connected)
     if (mongoose.connection.readyState === 1) {
-      console.log("✅ Using existing MongoDB connection");
-      // Verify connection is actually working
-      await mongoose.connection.db.admin().ping();
       return mongoose.connection;
     }
 
@@ -47,14 +47,30 @@ const connectDB = async () => {
 
     console.log("📍 MongoDB URI configured");
 
+    const isServerless = process.env.VERCEL === "1";
+    const maxPoolSize = parseInt(
+      process.env.MONGODB_MAX_POOL_SIZE ||
+        (isServerless ? "1" : "10"),
+      10,
+    );
+
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 1,
+      serverSelectionTimeoutMS: parseInt(
+        process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS || "15000",
+        10,
+      ),
+      socketTimeoutMS: parseInt(
+        process.env.MONGODB_SOCKET_TIMEOUT_MS || "45000",
+        10,
+      ),
+      maxPoolSize,
       minPoolSize: 0,
-      maxIdleTimeMS: 10000,
-      connectTimeoutMS: 10000,
-      family: 4, // Use IPv4, skip trying IPv6
+      maxIdleTimeMS: isServerless ? 10000 : 30000,
+      connectTimeoutMS: parseInt(
+        process.env.MONGODB_CONNECT_TIMEOUT_MS || "15000",
+        10,
+      ),
+      family: 4,
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

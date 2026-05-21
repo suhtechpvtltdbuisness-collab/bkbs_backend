@@ -643,7 +643,9 @@ class CardService {
     const members = await CardMember.find({
       cardId: { $in: cardIds },
       isDeleted: false,
-    }).lean();
+    })
+      .select("cardId name relation documentId age")
+      .lean();
 
     const membersByCardId = members.reduce((acc, member) => {
       const key = member.cardId.toString();
@@ -698,7 +700,9 @@ class CardService {
     const members = await CardMember.find({
       cardId: { $in: cardIds },
       isDeleted: false,
-    }).lean();
+    })
+      .select("cardId name relation documentId age")
+      .lean();
 
     const membersByCardId = members.reduce((acc, member) => {
       const key = member.cardId.toString();
