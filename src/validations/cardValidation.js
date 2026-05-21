@@ -22,6 +22,7 @@ export const createCardSchema = Joi.object({
   relatedPerson: Joi.string().optional().allow(""),
   religion: Joi.string().optional().allow(""),
   dob: Joi.string().optional().allow(""),
+  gender: Joi.string().optional().allow(""),
   pincode: Joi.string().optional().allow(""),
   campId: Joi.string().optional().allow(""),
   aadhaarNumber: Joi.string()
@@ -60,6 +61,7 @@ export const createCardSchema = Joi.object({
           "any.required": "Member relation is required",
         }),
         documentId: Joi.string().optional().allow(""),
+        docId: Joi.string().optional().allow(""),
         age: Joi.number().required().min(0).messages({
           "any.required": "Member age is required",
           "number.min": "Age must be a positive number",
@@ -110,6 +112,7 @@ export const updateCardSchema = Joi.object({
   relatedPerson: Joi.string().optional().allow(""),
   religion: Joi.string().optional().allow(""),
   dob: Joi.string().optional().allow(""),
+  gender: Joi.string().optional().allow(""),
   pincode: Joi.string().optional().allow(""),
   campId: Joi.string().optional().allow(""),
   aadhaarNumber: Joi.string()
@@ -125,6 +128,18 @@ export const updateCardSchema = Joi.object({
   totalMember: Joi.number().min(0).optional(),
   totalAmount: Joi.number().min(0).optional(),
   isPrint: Joi.boolean().optional(),
+  members: Joi.array()
+    .items(
+      Joi.object({
+        _id: Joi.string().optional(),
+        name: Joi.string().required(),
+        relation: Joi.string().required(),
+        documentId: Joi.string().optional().allow(""),
+        docId: Joi.string().optional().allow(""),
+        age: Joi.number().required().min(0),
+      }),
+    )
+    .optional(),
 });
 
 export const updateCardStatusSchema = Joi.object({

@@ -11,6 +11,21 @@ class AttendanceRepository {
       .populate("campId", "name lat long city state date");
   }
 
+  async findLatestOpenCheckoutToday(userId, campId) {
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setUTCHours(23, 59, 59, 999);
+
+    return await Attendance.findOne({
+      userId,
+      campId,
+      isDeleted: false,
+      date: { $gte: start, $lte: end },
+      $or: [{ checkoutAt: { $exists: false } }, { checkoutAt: null }],
+    }).sort({ createdAt: -1 });
+  }
+
   async findAll(filters = {}, options = {}) {
     const { page = 1, limit = 10, sort = "-date" } = options;
     const skip = (page - 1) * limit;

@@ -5,6 +5,7 @@ class AttendanceController {
   constructor() {
     this.getDateFilters = this.getDateFilters.bind(this);
     this.createAttendance = this.createAttendance.bind(this);
+    this.checkoutAttendance = this.checkoutAttendance.bind(this);
     this.getAllAttendances = this.getAllAttendances.bind(this);
     this.getAttendanceById = this.getAttendanceById.bind(this);
     this.getAttendanceByUserId = this.getAttendanceByUserId.bind(this);
@@ -28,6 +29,21 @@ class AttendanceController {
       );
 
       successResponse(res, 201, "Attendance created successfully", {
+        attendance,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async checkoutAttendance(req, res, next) {
+    try {
+      const attendance = await attendanceService.checkoutAttendance(
+        req.body,
+        req.user.userId,
+      );
+
+      successResponse(res, 200, "Attendance checked out successfully", {
         attendance,
       });
     } catch (error) {

@@ -60,6 +60,10 @@ const cardSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    gender: {
+      type: String,
+      trim: true,
+    },
     pincode: {
       type: String,
       trim: true,
@@ -157,10 +161,8 @@ cardSchema.index(
   },
 );
 
-cardSchema.index({ isDeleted: 1, isPrint: 1, createdAt: -1 });
-cardSchema.index({ isDeleted: 1, isPrint: 1, status: 1, createdAt: -1 });
-cardSchema.index({ isDeleted: 1, createdBy: 1, createdAt: -1 });
-
+cardSchema.index({ isDeleted: 1, isPrint: 1, createdAt: -1  });
+cardSchema.index({ createdBy: 1, isDeleted: 1, createdAt: -1 });
 const Card = mongoose.model("Card", cardSchema);
 
 export default Card;

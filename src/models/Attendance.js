@@ -46,6 +46,19 @@ const attendanceSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    checkoutLat: {
+      type: Number,
+      min: [-90, "checkoutLat must be between -90 and 90"],
+      max: [90, "checkoutLat must be between -90 and 90"],
+    },
+    checkoutLong: {
+      type: Number,
+      min: [-180, "checkoutLong must be between -180 and 180"],
+      max: [180, "checkoutLong must be between -180 and 180"],
+    },
+    checkoutAt: {
+      type: Date,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

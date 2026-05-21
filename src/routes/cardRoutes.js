@@ -35,6 +35,11 @@ router.get("/", cardController.getAllCards);
 router.get("/verified/not-printed", cardController.getAllVerifiedCards);
 router.get("/printed", cardController.getAllPrintedCards);
 router.get("/my-cards", cardController.getMyCards);
+router.get(
+  "/employee/:employeeId",
+  authorize("admin", "editor"),
+  cardController.getCardsByEmployee,
+);
 router.get("/stats", authorize("admin"), cardController.getCardStats);
 
 router.put(
