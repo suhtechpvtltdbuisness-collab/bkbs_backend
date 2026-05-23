@@ -435,12 +435,13 @@ class CardController {
 
   /**
    * Create new card (Public - No authentication required)
-   * Sets createdBy to -1 for public submissions
+   * Sets createdBy to -1 and ensures status is pending for public submissions
    */
   async createCardPublic(req, res, next) {
     try {
       const cardData = {
         ...req.body,
+        status: "pending",
         createdBy: "-1",
       };
 
