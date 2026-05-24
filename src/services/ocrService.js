@@ -31,15 +31,16 @@ class OcrService {
     const rawText = await runOcr(file);
     const parsed = parseFront(rawText);
 
-    if (!parsed.aadhaarNumber) {
+    if (!parsed.aadhaarNumber && !parsed.vid) {
       throw new ApiError(
         422,
-        "Could not extract Aadhaar number from front image. Please upload a clearer photo.",
+        "Could not extract Aadhaar number or VID from front image. Please upload a clearer photo.",
       );
     }
 
     return {
       aadhaarNumber: parsed.aadhaarNumber,
+      vid: parsed.vid,
       name: parsed.name,
       dob: parsed.dob,
       gender: parsed.gender,
