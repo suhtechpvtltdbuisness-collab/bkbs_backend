@@ -770,7 +770,7 @@ class CardService {
           profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
         }
         if (!profileDoc) {
-          profileDoc = card.documents[0];
+          profileDoc = card.documents[2] || card.documents[0];
         }
       }
 
@@ -847,7 +847,7 @@ class CardService {
           profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
         }
         if (!profileDoc) {
-          profileDoc = card.documents[0];
+          profileDoc = card.documents[2] || card.documents[0];
         }
       }
 
