@@ -765,16 +765,17 @@ class CardService {
       
       let profileDoc = null;
       if (Array.isArray(card.documents) && card.documents.length > 0) {
-        profileDoc = card.documents.find(
-          (doc) => doc.name === "profilePhoto" || (doc.filename && doc.filename.toLowerCase().includes("head_photo"))
-        );
+        profileDoc = card.documents.find((doc) => doc.name === "profilePhoto");
+        if (!profileDoc) {
+          profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
+        }
         if (!profileDoc) {
           profileDoc = card.documents[0];
         }
       }
 
       const image = profileDoc;
-      const profileImage = profileDoc ? profileDoc.path : "";
+      const profileImage = cardObject.profileImage || (profileDoc ? profileDoc.path : "");
       
       const { documents, ...cardWithoutDocs } = cardObject;
       return {
@@ -841,16 +842,17 @@ class CardService {
       
       let profileDoc = null;
       if (Array.isArray(card.documents) && card.documents.length > 0) {
-        profileDoc = card.documents.find(
-          (doc) => doc.name === "profilePhoto" || (doc.filename && doc.filename.toLowerCase().includes("head_photo"))
-        );
+        profileDoc = card.documents.find((doc) => doc.name === "profilePhoto");
+        if (!profileDoc) {
+          profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
+        }
         if (!profileDoc) {
           profileDoc = card.documents[0];
         }
       }
 
       const image = profileDoc;
-      const profileImage = profileDoc ? profileDoc.path : "";
+      const profileImage = cardObject.profileImage || (profileDoc ? profileDoc.path : "");
       
       const { documents, ...cardWithoutDocs } = cardObject;
       return {
