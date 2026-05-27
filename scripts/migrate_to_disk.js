@@ -12,19 +12,36 @@ dotenv.config();
 |--------------------------------------------------------------------------
 */
 
-// Railway mounted volume example:
-// /bkbs_docs/uploads
 const UPLOAD_BASE =
   process.env.UPLOAD_DIR || "/bkbs_docs/uploads";
 
-// Ensure uploads base exists
-await fs.mkdir(UPLOAD_BASE, { recursive: true });
+console.log("=====================================");
+console.log("MIGRATION SCRIPT STARTED");
+console.log("=====================================");
+console.log("UPLOAD_DIR ENV =", process.env.UPLOAD_DIR);
+console.log("UPLOAD_BASE =", UPLOAD_BASE);
 
 /*
 |--------------------------------------------------------------------------
 | HELPERS
 |--------------------------------------------------------------------------
 */
+
+// Ensure base directory exists
+await fs.mkdir(UPLOAD_BASE, { recursive: true });
+
+// Test volume write
+const testFile = path.join(
+  UPLOAD_BASE,
+  "migration-test.txt"
+);
+
+await fs.writeFile(
+  testFile,
+  "Railway volume working"
+);
+
+console.log("✅ Volume write test successful");
 
 // Mime type -> extension
 const getExtension = (mimetype = "") => {
@@ -40,9 +57,11 @@ const getExtension = (mimetype = "") => {
   return map[mimetype] || ".bin";
 };
 
-// Validate magic bytes
+// Validate binary signatures
 const validateFile = (buffer, mimetype) => {
-  if (!buffer || buffer.length < 4) return false;
+  if (!buffer || buffer.length < 4) {
+    return false;
+  }
 
   const hex = buffer.toString("hex", 0, 4);
 
@@ -61,58 +80,75 @@ const validateFile = (buffer, mimetype) => {
 
   // GIF
   if (mimetype.includes("gif")) {
-    return buffer.toString("ascii", 0, 3) === "GIF";
+    return (
+      buffer.toString("ascii", 0, 3) === "GIF"
+    );
   }
 
   // WEBP
   if (mimetype.includes("webp")) {
     return (
-      buffer.toString("ascii", 8, 12) === "WEBP"
+      buffer.toString("ascii", 8, 12) ===
+      "WEBP"
     );
   }
 
   // PDF
   if (mimetype.includes("pdf")) {
     return (
-      buffer.toString("ascii", 0, 4) === "%PDF"
+      buffer.toString("ascii", 0, 4) ===
+      "%PDF"
     );
   }
 
   return true;
 };
 
-// Extract base64 safely
+// Safe base64 parser
 const parseBase64 = (base64String) => {
-  if (
-    !base64String ||
-    typeof base64String !== "string"
-  ) {
+  try {
+    if (
+      !base64String ||
+      typeof base64String !== "string"
+    ) {
+      return null;
+    }
+
+    if (!base64String.startsWith("data:")) {
+      return null;
+    }
+
+    const commaIndex =
+      base64String.indexOf(",");
+
+    if (commaIndex === -1) {
+      return null;
+    }
+
+    const meta = base64String.slice(
+      0,
+      commaIndex
+    );
+
+    const data = base64String.slice(
+      commaIndex + 1
+    );
+
+    const mimeMatch = meta.match(
+      /data:(.*?);base64/
+    );
+
+    if (!mimeMatch) {
+      return null;
+    }
+
+    return {
+      mimetype: mimeMatch[1],
+      base64Data: data,
+    };
+  } catch (err) {
     return null;
   }
-
-  if (!base64String.startsWith("data:")) {
-    return null;
-  }
-
-  const commaIndex = base64String.indexOf(",");
-
-  if (commaIndex === -1) {
-    return null;
-  }
-
-  const meta = base64String.slice(0, commaIndex);
-  const data = base64String.slice(commaIndex + 1);
-
-  const mimeMatch = meta.match(/data:(.*?);base64/);
-
-  if (!mimeMatch) {
-    return null;
-  }
-
-  return {
-    mimetype: mimeMatch[1],
-    base64Data: data,
-  };
 };
 
 /*
@@ -123,36 +159,45 @@ const parseBase64 = (base64String) => {
 
 const migrate = async () => {
   try {
-    console.log("=====================================");
-    console.log("Starting Migration...");
-    console.log("=====================================");
-
-    /*
-    |--------------------------------------------------------------------------
-    | DATABASE CONNECT
-    |--------------------------------------------------------------------------
-    */
-
+    console.log("\n=====================================");
     console.log("Connecting to MongoDB...");
+    console.log("=====================================");
 
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(
+      process.env.MONGODB_URI,
+      {
+        maxPoolSize: 5,
+      }
+    );
 
-    console.log("MongoDB connected successfully!");
+    console.log(
+      "✅ MongoDB connected successfully!"
+    );
 
     /*
     |--------------------------------------------------------------------------
-    | FIND CARDS
+    | CREATE CURSOR
     |--------------------------------------------------------------------------
     */
 
-    const cards = await Card.find({
+    console.log("\nCreating Mongo cursor...");
+
+    const cursor = Card.find({
       "documents.path": {
         $regex: /^data:/,
       },
-    });
+    })
+      .select({
+        documents: 1,
+        firstName: 1,
+        lastName: 1,
+      })
+      .cursor({
+        batchSize: 1,
+      });
 
     console.log(
-      `Found ${cards.length} cards requiring migration.\n`
+      "✅ Cursor created successfully!"
     );
 
     /*
@@ -161,6 +206,7 @@ const migrate = async () => {
     |--------------------------------------------------------------------------
     */
 
+    let cardCount = 0;
     let migratedDocsCount = 0;
     let failedDocsCount = 0;
     let skippedDocsCount = 0;
@@ -168,29 +214,38 @@ const migrate = async () => {
 
     /*
     |--------------------------------------------------------------------------
-    | PROCESS CARDS
+    | PROCESS STREAM
     |--------------------------------------------------------------------------
     */
 
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-
-      let needsUpdate = false;
+    for await (const card of cursor) {
+      cardCount++;
 
       console.log(
-        `\n[${i + 1}/${cards.length}] Card: ${
+        `\n=====================================`
+      );
+
+      console.log(
+        `[CARD ${cardCount}] ${
           card.firstName || ""
         } ${card.lastName || ""}`
       );
 
+      console.log(
+        `=====================================`
+      );
+
+      let needsUpdate = false;
+
+      /*
+      |--------------------------------------------------------------------------
+      | DOCUMENT LOOP
+      |--------------------------------------------------------------------------
+      */
+
       for (const doc of card.documents) {
         try {
-          /*
-          |--------------------------------------------------------------------------
-          | SKIP NON-BASE64
-          |--------------------------------------------------------------------------
-          */
-
+          // Skip already migrated docs
           if (
             !doc.path ||
             typeof doc.path !== "string" ||
@@ -206,18 +261,23 @@ const migrate = async () => {
           |--------------------------------------------------------------------------
           */
 
-          const parsed = parseBase64(doc.path);
+          const parsed = parseBase64(
+            doc.path
+          );
 
           if (!parsed) {
             console.log(
-              `  ❌ Invalid base64 format -> ${doc._id}`
+              `❌ Invalid base64 -> ${doc._id}`
             );
 
             failedDocsCount++;
             continue;
           }
 
-          const { mimetype, base64Data } = parsed;
+          const {
+            mimetype,
+            base64Data,
+          } = parsed;
 
           /*
           |--------------------------------------------------------------------------
@@ -230,9 +290,12 @@ const migrate = async () => {
             "base64"
           );
 
-          if (!buffer || buffer.length === 0) {
+          if (
+            !buffer ||
+            buffer.length === 0
+          ) {
             console.log(
-              `  ❌ Empty buffer -> ${doc._id}`
+              `❌ Empty buffer -> ${doc._id}`
             );
 
             failedDocsCount++;
@@ -241,7 +304,7 @@ const migrate = async () => {
 
           /*
           |--------------------------------------------------------------------------
-          | VALIDATE FILE SIGNATURE
+          | VALIDATE FILE
           |--------------------------------------------------------------------------
           */
 
@@ -252,7 +315,7 @@ const migrate = async () => {
 
           if (!isValid) {
             console.log(
-              `  ❌ Corrupted file detected -> ${doc._id}`
+              `❌ Corrupted file -> ${doc._id}`
             );
 
             failedDocsCount++;
@@ -265,10 +328,13 @@ const migrate = async () => {
           |--------------------------------------------------------------------------
           */
 
-          const ext = getExtension(mimetype);
+          const ext =
+            getExtension(mimetype);
 
           const year = doc.uploadedAt
-            ? new Date(doc.uploadedAt).getFullYear()
+            ? new Date(
+                doc.uploadedAt
+              ).getFullYear()
             : new Date().getFullYear();
 
           const yearDir = path.join(
@@ -283,37 +349,48 @@ const migrate = async () => {
           const sanitizedName = (
             doc.name || "document"
           )
-            .replace(/[^a-zA-Z0-9-_]/g, "_")
+            .replace(
+              /[^a-zA-Z0-9-_]/g,
+              "_"
+            )
             .slice(0, 50);
 
           const filename = `${Date.now()}_${
             doc._id
           }_${sanitizedName}${ext}`;
 
-          const absolutePath = path.join(
-            yearDir,
-            filename
-          );
+          const absolutePath =
+            path.join(
+              yearDir,
+              filename
+            );
+
+          const relativePath = `/uploads/${year}/${filename}`;
 
           /*
           |--------------------------------------------------------------------------
-          | SAVE FILE
+          | WRITE FILE
           |--------------------------------------------------------------------------
           */
+
+          console.log(
+            `Writing file -> ${absolutePath}`
+          );
 
           await fs.writeFile(
             absolutePath,
             buffer
           );
 
+          console.log(
+            `✅ File written successfully`
+          );
+
           /*
           |--------------------------------------------------------------------------
-          | UPDATE DB
+          | UPDATE DOC
           |--------------------------------------------------------------------------
           */
-
-          // URL accessible path
-          const relativePath = `/uploads/${year}/${filename}`;
 
           doc.path = relativePath;
           doc.mimetype = mimetype;
@@ -326,26 +403,26 @@ const migrate = async () => {
           bytesSaved += buffer.length;
 
           console.log(
-            `  ✅ Migrated: ${filename}`
+            `✅ Migrated -> ${filename}`
           );
 
           console.log(
-            `     Size: ${(
+            `Size -> ${(
               buffer.length / 1024
             ).toFixed(2)} KB`
           );
 
           console.log(
-            `     URL: ${relativePath}`
+            `URL -> ${relativePath}`
           );
         } catch (docErr) {
           failedDocsCount++;
 
           console.log(
-            `  ❌ Migration failed -> ${doc._id}`
+            `❌ Failed -> ${doc._id}`
           );
 
-          console.log(docErr.message);
+          console.log(docErr);
         }
       }
 
@@ -356,14 +433,32 @@ const migrate = async () => {
       */
 
       if (needsUpdate) {
-        card.markModified("documents");
+        try {
+          card.markModified(
+            "documents"
+          );
 
-        await card.save();
+          await card.save();
 
-        console.log(
-          "  💾 Card updated successfully!"
-        );
+          console.log(
+            "💾 Card updated successfully!"
+          );
+        } catch (saveErr) {
+          console.log(
+            "❌ Failed saving card"
+          );
+
+          console.log(saveErr);
+        }
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | MEMORY CLEANUP
+      |--------------------------------------------------------------------------
+      */
+
+      global.gc?.();
     }
 
     /*
@@ -373,23 +468,27 @@ const migrate = async () => {
     */
 
     console.log("\n=====================================");
-    console.log("Migration Completed!");
+    console.log("MIGRATION COMPLETED");
     console.log("=====================================");
 
     console.log(
-      `✅ Migrated Documents: ${migratedDocsCount}`
+      `Cards Processed -> ${cardCount}`
     );
 
     console.log(
-      `❌ Failed Documents: ${failedDocsCount}`
+      `Migrated Docs -> ${migratedDocsCount}`
     );
 
     console.log(
-      `⏭️ Skipped Documents: ${skippedDocsCount}`
+      `Failed Docs -> ${failedDocsCount}`
     );
 
     console.log(
-      `💾 Disk Storage Used: ${(
+      `Skipped Docs -> ${skippedDocsCount}`
+    );
+
+    console.log(
+      `Disk Used -> ${(
         bytesSaved /
         (1024 * 1024)
       ).toFixed(2)} MB`
@@ -405,13 +504,24 @@ const migrate = async () => {
 
     await mongoose.connection.close();
 
-    console.log("MongoDB connection closed.");
+    console.log(
+      "MongoDB connection closed."
+    );
 
     process.exit(0);
   } catch (err) {
-    console.error("\n=====================================");
-    console.error("FATAL MIGRATION ERROR");
-    console.error("=====================================");
+    console.error(
+      "\n====================================="
+    );
+
+    console.error(
+      "FATAL MIGRATION ERROR"
+    );
+
+    console.error(
+      "====================================="
+    );
+
     console.error(err);
 
     process.exit(1);
