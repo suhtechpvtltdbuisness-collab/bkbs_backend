@@ -11,6 +11,35 @@ import CardMember from "../models/CardMember.js";
 import Payment from "../models/Payment.js";
 
 class CardService {
+  /**
+   * Extract profile pic from a card's documents array.
+   * Priority: document with filename "family_head_photo.jpg",
+   * then fallback to doc[2] if 4 docs, doc[3] if 5 docs.
+   */
+  extractProfilePic(documents = []) {
+    if (!Array.isArray(documents) || documents.length === 0) {
+      return null;
+    }
+
+    // 1. Look for family_head_photo by filename
+    const familyHeadPhoto = documents.find(
+      (doc) => doc.filename === "family_head_photo.jpg"
+    );
+    if (familyHeadPhoto) {
+      return familyHeadPhoto.path || null;
+    }
+
+    // 2. Fallback based on documents length
+    if (documents.length === 4 && documents[2]) {
+      return documents[2].path || null;
+    }
+    if (documents.length === 5 && documents[3]) {
+      return documents[3].path || null;
+    }
+
+    return null;
+  }
+
   addTotalMembers(card, memberCount) {
     const cardObject = card?.toObject ? card.toObject() : card;
 
@@ -640,12 +669,18 @@ class CardService {
       });
     }
 
-    const members = await CardMember.find({
-      cardId: { $in: cardIds },
-      isDeleted: false,
-    })
-      .select("cardId name relation documentId age")
-      .lean();
+    // Fetch members and documents in parallel
+    const [members, cardDocs] = await Promise.all([
+      CardMember.find({
+        cardId: { $in: cardIds },
+        isDeleted: false,
+      })
+        .select("cardId name relation documentId age")
+        .lean(),
+      Card.find({ _id: { $in: cardIds } })
+        .select("_id documents")
+        .lean(),
+    ]);
 
     const membersByCardId = members.reduce((acc, member) => {
       const key = member.cardId.toString();
@@ -656,12 +691,19 @@ class CardService {
       return acc;
     }, {});
 
+    // Build a map of cardId -> profilePic path
+    const profilePicByCardId = cardDocs.reduce((acc, doc) => {
+      acc[doc._id.toString()] = this.extractProfilePic(doc.documents);
+      return acc;
+    }, {});
+
     const cardsWithMembers = result.cards.map((card) => {
-      const memberCount = (membersByCardId[card._id.toString()] || []).length;
+      const cardIdStr = card._id.toString();
+      const memberCount = (membersByCardId[cardIdStr] || []).length;
       const cardObject = this.addTotalMembers(card, memberCount);
       return {
         ...cardObject,
-        members: membersByCardId[card._id.toString()] || [],
+        profilePic: profilePicByCardId[cardIdStr] || null,
       };
     });
 
@@ -697,12 +739,18 @@ class CardService {
       });
     }
 
-    const members = await CardMember.find({
-      cardId: { $in: cardIds },
-      isDeleted: false,
-    })
-      .select("cardId name relation documentId age")
-      .lean();
+    // Fetch members and documents in parallel
+    const [members, cardDocs] = await Promise.all([
+      CardMember.find({
+        cardId: { $in: cardIds },
+        isDeleted: false,
+      })
+        .select("cardId name relation documentId age")
+        .lean(),
+      Card.find({ _id: { $in: cardIds } })
+        .select("_id documents")
+        .lean(),
+    ]);
 
     const membersByCardId = members.reduce((acc, member) => {
       const key = member.cardId.toString();
@@ -713,12 +761,19 @@ class CardService {
       return acc;
     }, {});
 
+    // Build a map of cardId -> profilePic path
+    const profilePicByCardId = cardDocs.reduce((acc, doc) => {
+      acc[doc._id.toString()] = this.extractProfilePic(doc.documents);
+      return acc;
+    }, {});
+
     const cardsWithMembers = result.cards.map((card) => {
-      const memberCount = (membersByCardId[card._id.toString()] || []).length;
+      const cardIdStr = card._id.toString();
+      const memberCount = (membersByCardId[cardIdStr] || []).length;
       const cardObject = this.addTotalMembers(card, memberCount);
       return {
         ...cardObject,
-        members: membersByCardId[card._id.toString()] || [],
+        profilePic: profilePicByCardId[cardIdStr] || null,
       };
     });
 
