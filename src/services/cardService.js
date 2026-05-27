@@ -726,9 +726,9 @@ class CardService {
   async getAllVerifiedCards(options = {}) {
     const { page = 1, limit = 10, search } = options;
 
-    // Query for cards where isPrint is false
+    // Query for cards where isPrint is false or missing
     const filters = this.applyCardSearchFilters({
-      isPrint: false,
+      isPrint: { $ne: true },
       status: { $in: ["approved", "active"] }, // Only approved or active cards
       search,
     });
