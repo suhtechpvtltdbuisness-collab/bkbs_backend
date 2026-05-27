@@ -77,6 +77,10 @@ const cardSchema = new mongoose.Schema(
       trim: true,
       match: [/^\d{12}$/, "Aadhaar number must be 12 digits"],
     },
+    address: {
+      type: String,
+      trim: true,
+    },
     cardNo: {
       type: String,
       unique: true,
@@ -102,6 +106,9 @@ const cardSchema = new mongoose.Schema(
     },
     documents: [
       {
+        name: {
+          type: String,
+        },
         filename: {
           type: String,
         },

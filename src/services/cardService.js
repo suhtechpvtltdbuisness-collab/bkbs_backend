@@ -390,6 +390,109 @@ class CardService {
         // Rollback transaction on error
         await session.abortTransaction();
         session.endSession();
+
+        // Check if standalone MongoDB (replica set not configured)
+        if (
+          error.name === "MongoServerError" &&
+          (error.message.includes("Transaction numbers are only allowed") ||
+           error.message.includes("sessions are not supported"))
+        ) {
+          console.warn("MongoDB Standalone mode detected (no replica set). Falling back to non-transactional card creation.");
+
+          // Create card without transaction
+          const card = await Card.create(cardInfo);
+
+          // Create members with cardId reference if provided
+          if (normalizedMembers.length > 0) {
+            const membersWithCardId = normalizedMembers.map((member) => ({
+              ...member,
+              cardId: card._id,
+            }));
+
+            await CardMember.insertMany(membersWithCardId);
+          }
+
+          // Create payment if payment data is provided
+          let paymentRecord = null;
+          if (payment) {
+            const rawPaymentMethod = payment.paymentMethod ?? payment.method;
+            const normalizedPaymentMethod =
+              String(rawPaymentMethod || "cash").toLowerCase() === "offline"
+                ? "cash"
+                : String(rawPaymentMethod || "cash").toLowerCase();
+
+            const paymentData = {
+              cardId: card._id,
+              createdBy: cardInfo.createdBy,
+              orderId: payment.orderId,
+              transactionId: payment.transactionId,
+              amount: payment.amount ?? payment.totalAmount,
+              paymentMethod: normalizedPaymentMethod,
+              status: payment.status || "SUCCESS",
+            };
+
+            // Check if transaction ID already exists
+            if (paymentData.transactionId) {
+              const existingPayment = await Payment.findOne({
+                transactionId: paymentData.transactionId,
+              });
+
+              if (existingPayment) {
+                if (paymentData.paymentMethod === "online") {
+                  const alreadyLinkedToAnotherCard =
+                    existingPayment.cardId &&
+                    existingPayment.cardId.toString() !== card._id.toString();
+
+                  if (alreadyLinkedToAnotherCard) {
+                    throw new ApiError(
+                      409,
+                      `Payment with transaction ID ${paymentData.transactionId} is already linked to another card`,
+                    );
+                  }
+
+                  existingPayment.cardId = card._id;
+                  if (paymentData.createdBy !== undefined) {
+                    existingPayment.createdBy = paymentData.createdBy;
+                  }
+                  if (paymentData.amount !== undefined) {
+                    existingPayment.amount = paymentData.amount;
+                  }
+                  if (paymentData.status) {
+                    existingPayment.status = paymentData.status;
+                  }
+                  existingPayment.paymentMethod = paymentData.paymentMethod;
+                  paymentRecord = await existingPayment.save();
+                } else {
+                  throw new ApiError(
+                    409,
+                    `Payment with transaction ID ${paymentData.transactionId} already exists`,
+                  );
+                }
+              }
+            }
+
+            if (!paymentRecord) {
+              paymentRecord = await Payment.create(paymentData);
+            }
+          }
+
+          // Return card with populated members and payment
+          const cardWithData = await Card.findById(card._id).populate(
+            "campId",
+            "name lat long city state date",
+          );
+          const cardMembers = await CardMember.find({ cardId: card._id });
+          const cardPayment = paymentRecord
+            ? await Payment.findById(paymentRecord._id)
+            : null;
+
+          return {
+            ...this.addTotalMembers(cardWithData, cardMembers.length),
+            members: cardMembers,
+            payment: cardPayment,
+          };
+        }
+
         throw error;
       }
     }
@@ -652,14 +755,14 @@ class CardService {
   async getAllVerifiedCards(options = {}) {
     const { page = 1, limit = 10, search } = options;
 
-    // Query for cards where isPrint is false
+    // Query for cards where isPrint is false or missing
     const filters = this.applyCardSearchFilters({
-      isPrint: false,
+      isPrint: { $ne: true },
       status: { $in: ["approved", "active"] }, // Only approved or active cards
       search,
     });
 
-    const result = await cardRepository.findAll(filters, { page, limit });
+    const result = await cardRepository.findAll(filters, { page, limit, select: "-__v" });
 
     const cardIds = result.cards.map((card) => card._id);
     if (cardIds.length === 0) {
@@ -701,6 +804,26 @@ class CardService {
       const cardIdStr = card._id.toString();
       const memberCount = (membersByCardId[cardIdStr] || []).length;
       const cardObject = this.addTotalMembers(card, memberCount);
+      
+      let profileDoc = null;
+      if (Array.isArray(card.documents) && card.documents.length > 0) {
+        profileDoc = card.documents.find((doc) => doc.name === "profilePhoto");
+        if (!profileDoc) {
+          profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
+        }
+        if (!profileDoc) {
+          if (card.documents.length === 5) {
+            profileDoc = card.documents[3];
+          } else if (card.documents.length === 4) {
+            profileDoc = card.documents[2];
+          } 
+        }
+      }
+
+      const image = profileDoc;
+      const profileImage = cardObject.profileImage || (profileDoc ? profileDoc.path : "");
+      
+      const { documents, ...cardWithoutDocs } = cardObject;
       return {
         ...cardObject,
         profilePic: profilePicByCardId[cardIdStr] || null,
@@ -714,7 +837,7 @@ class CardService {
   }
 
   /**
-   * Get all printed cards
+   * Get all printed cards (no member join — uses stored totalMember)
    */
   async getAllPrintedCards(options = {}) {
     const { page = 1, limit = 10, search } = options;
@@ -724,11 +847,13 @@ class CardService {
       search,
     });
 
+    // Include documents (for profile image extraction), sort by _id (always indexed)
     const result = await cardRepository.findAll(filters, {
       page,
       limit,
-      sort: { createdAt: -1 },
-      allowDiskUse: true,
+      sort: { _id: -1 },
+      allowDiskUse: false,
+      select: "-__v",
     });
 
     const cardIds = result.cards.map((card) => card._id);
@@ -757,9 +882,6 @@ class CardService {
       if (!acc[key]) {
         acc[key] = [];
       }
-      acc[key].push(member);
-      return acc;
-    }, {});
 
     // Build a map of cardId -> profilePic path
     const profilePicByCardId = cardDocs.reduce((acc, doc) => {
@@ -777,10 +899,7 @@ class CardService {
       };
     });
 
-    return {
-      ...result,
-      cards: cardsWithMembers,
-    };
+    return { ...result, cards };
   }
 
   /**

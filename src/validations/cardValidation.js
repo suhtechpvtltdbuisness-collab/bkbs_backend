@@ -31,6 +31,7 @@ export const createCardSchema = Joi.object({
     .messages({
       "string.pattern.base": "Aadhaar number must be exactly 12 digits",
     }),
+  address: Joi.string().optional().allow(""),
   cardNo: Joi.string().optional(),
   cardIssueDate: Joi.string().optional().allow(""),
   cardExpiredDate: Joi.string().optional().allow(""),
@@ -41,6 +42,7 @@ export const createCardSchema = Joi.object({
   documents: Joi.array()
     .items(
       Joi.object({
+        name: Joi.string().optional().allow(""),
         filename: Joi.string().optional(),
         originalName: Joi.string().optional(),
         path: Joi.string().optional(),
@@ -121,6 +123,7 @@ export const updateCardSchema = Joi.object({
     .messages({
       "string.pattern.base": "Aadhaar number must be exactly 12 digits",
     }),
+  address: Joi.string().optional().allow(""),
   cardNo: Joi.string().optional(),
   cardIssueDate: Joi.string().optional(),
   cardExpiredDate: Joi.string().optional(),

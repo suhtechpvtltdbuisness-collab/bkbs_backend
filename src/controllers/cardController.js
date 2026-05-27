@@ -15,6 +15,16 @@ class CardController {
         createdBy: req.user.userId,
       };
 
+      // Parse documents metadata if it's a string (from multipart/form-data)
+      if (typeof cardData.documents === "string") {
+        try {
+          cardData.documents = JSON.parse(cardData.documents);
+        } catch (error) {
+          // If parsing fails, ignore documents metadata
+        }
+      }
+      const bodyDocuments = Array.isArray(cardData.documents) ? cardData.documents : [];
+
       // Handle uploaded documents
       if (req.files && req.files.documents && req.files.documents.length > 0) {
         const useVercelBlob =
@@ -24,14 +34,18 @@ class CardController {
         if (useVercelBlob) {
           // Upload to Vercel Blob (production/serverless)
           try {
-            cardData.documents = await uploadToVercelBlob(req.files.documents);
+            const uploaded = await uploadToVercelBlob(req.files.documents);
+            cardData.documents = uploaded.map((file, idx) => ({
+              name: bodyDocuments[idx]?.name || "",
+              ...file,
+            }));
           } catch (error) {
             console.error("Vercel Blob upload error:", error);
             throw new Error("Failed to upload documents to cloud storage");
           }
         } else {
           // Local file storage (development)
-          cardData.documents = req.files.documents.map((file) => {
+          cardData.documents = req.files.documents.map((file, idx) => {
             // Extract relative path for URL access
             let relativePath = file.path;
 
@@ -44,6 +58,7 @@ class CardController {
             }
 
             return {
+              name: bodyDocuments[idx]?.name || "",
               filename: file.filename,
               originalName: file.originalname,
               path: relativePath,
@@ -133,9 +148,17 @@ class CardController {
       const { page, limit } = paginate(req.query.page, req.query.limit);
       const filters = {};
 
+      const allowedStatuses = ["pending", "rejected", "expired"];
+
       // Apply filters
       if (req.query.status) {
-        filters.status = req.query.status;
+        if (allowedStatuses.includes(req.query.status)) {
+          filters.status = req.query.status;
+        } else {
+          filters.status = { $in: [] };
+        }
+      } else {
+        filters.status = { $in: allowedStatuses };
       }
 
       if (req.query.search) {
@@ -444,6 +467,16 @@ class CardController {
         createdBy: "-1",
       };
 
+      // Parse documents metadata if it's a string (from multipart/form-data)
+      if (typeof cardData.documents === "string") {
+        try {
+          cardData.documents = JSON.parse(cardData.documents);
+        } catch (error) {
+          // If parsing fails, ignore documents metadata
+        }
+      }
+      const bodyDocuments = Array.isArray(cardData.documents) ? cardData.documents : [];
+
       // Handle uploaded documents
       if (req.files && req.files.documents && req.files.documents.length > 0) {
         const useVercelBlob =
@@ -453,14 +486,18 @@ class CardController {
         if (useVercelBlob) {
           // Upload to Vercel Blob (production/serverless)
           try {
-            cardData.documents = await uploadToVercelBlob(req.files.documents);
+            const uploaded = await uploadToVercelBlob(req.files.documents);
+            cardData.documents = uploaded.map((file, idx) => ({
+              name: bodyDocuments[idx]?.name || "",
+              ...file,
+            }));
           } catch (error) {
             console.error("Vercel Blob upload error:", error);
             throw new Error("Failed to upload documents to cloud storage");
           }
         } else {
           // Local file storage (development)
-          cardData.documents = req.files.documents.map((file) => {
+          cardData.documents = req.files.documents.map((file, idx) => {
             // Extract relative path for URL access
             let relativePath = file.path;
 
@@ -473,6 +510,7 @@ class CardController {
             }
 
             return {
+              name: bodyDocuments[idx]?.name || "",
               filename: file.filename,
               originalName: file.originalname,
               path: relativePath,
