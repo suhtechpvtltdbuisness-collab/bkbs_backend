@@ -43,5 +43,4 @@ RUN chmod +x scripts/start-railway.sh
 
 EXPOSE 5000
 
-# CMD ["scripts/start-railway.sh"]
-CMD ["sh", "-c", "npm run migrate:docs && scripts/start-railway.sh"]
+CMD ["scripts/start-railway.sh"]

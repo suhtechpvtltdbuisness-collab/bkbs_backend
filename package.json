@@ -9,7 +9,7 @@
     "npm": ">=9.0.0"
   },
   "scripts": {
-    "start" : "npm run migrate:docs",
+    "start" : "node src/server.js",
     "start:railway": "sh scripts/start-railway.sh",
     "dev": "nodemon src/server.js",
     "build": "echo 'No build step required'",
