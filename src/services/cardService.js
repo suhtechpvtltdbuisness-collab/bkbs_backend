@@ -770,7 +770,11 @@ class CardService {
           profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
         }
         if (!profileDoc) {
-          profileDoc = card.documents[2] || card.documents[0];
+          if (card.documents.length === 5) {
+            profileDoc = card.documents[3];
+          } else if (card.documents.length === 4) {
+            profileDoc = card.documents[2];
+          } 
         }
       }
 
@@ -807,7 +811,7 @@ class CardService {
     const result = await cardRepository.findAll(filters, {
       page,
       limit,
-      sort: { createdAt: -1 },
+      sort: { _id: -1 }, // Use _id index to avoid slow disk sorts if compound index is missing
       allowDiskUse: true,
       select: "-__v",
     });
@@ -847,7 +851,13 @@ class CardService {
           profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
         }
         if (!profileDoc) {
-          profileDoc = card.documents[2] || card.documents[0];
+          if (card.documents.length === 5) {
+            profileDoc = card.documents[4];
+          } else if (card.documents.length === 4) {
+            profileDoc = card.documents[3];
+          } else {
+            profileDoc = card.documents[2] || card.documents[0];
+          }
         }
       }
 

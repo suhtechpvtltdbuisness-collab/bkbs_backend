@@ -148,9 +148,17 @@ class CardController {
       const { page, limit } = paginate(req.query.page, req.query.limit);
       const filters = {};
 
+      const allowedStatuses = ["pending", "rejected", "expired"];
+
       // Apply filters
       if (req.query.status) {
-        filters.status = req.query.status;
+        if (allowedStatuses.includes(req.query.status)) {
+          filters.status = req.query.status;
+        } else {
+          filters.status = { $in: [] };
+        }
+      } else {
+        filters.status = { $in: allowedStatuses };
       }
 
       if (req.query.search) {
