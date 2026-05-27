@@ -1,15 +1,15 @@
-import { put } from "@vercel/blob";
+import fs from "fs/promises";
 import path from "path";
 
 /**
- * Vercel Blob Storage Upload Handler
- * Handles file uploads to Vercel Blob storage
+ * File Storage Upload Handler (for Railway/Local Storage)
+ * Handles file uploads to disk instead of Vercel Blob
  */
 
 /**
- * Upload files to Vercel Blob storage
+ * Upload files to local storage
  * @param {Array} files - Array of files from multer (req.files)
- * @param {string} folder - Optional folder path prefix in blob storage
+ * @param {string} folder - Optional folder path prefix
  * @returns {Promise<Array>} - Array of uploaded file metadata with URLs
  */
 export const uploadToVercelBlob = async (files, folder = "") => {
@@ -21,23 +21,43 @@ export const uploadToVercelBlob = async (files, folder = "") => {
       const nameWithoutExt = path.basename(file.originalname, ext);
       const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, "_");
       const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      
+      const fileName = `${sanitizedName}-${uniqueSuffix}${ext}`;
+      
       const normalizedFolder = String(folder || "")
         .replace(/^\/+|\/+$/g, "")
         .replace(/\/{2,}/g, "/");
-      const blobPath = normalizedFolder
-        ? `${normalizedFolder}/${year}/${sanitizedName}-${uniqueSuffix}${ext}`
-        : `${year}/${sanitizedName}-${uniqueSuffix}${ext}`;
 
-      // Upload to Vercel Blob
-      const blob = await put(blobPath, file.buffer, {
-        access: "public",
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      });
+      // Determine base upload directory (Railway volume or local uploads folder)
+      const baseDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads");
+      
+      // Determine target directory
+      const targetDir = normalizedFolder
+        ? path.join(baseDir, normalizedFolder, year.toString())
+        : path.join(baseDir, year.toString());
+
+      // Ensure directory exists
+      await fs.mkdir(targetDir, { recursive: true });
+
+      const filePath = path.join(targetDir, fileName);
+
+      // Write file to disk
+      await fs.writeFile(filePath, file.buffer);
+
+      // Generate relative path for URL
+      let relativePath = filePath;
+      if (relativePath.includes("/uploads/")) {
+        relativePath = relativePath.substring(relativePath.indexOf("/uploads/"));
+      } else {
+        // Fallback for relative path construction
+        const urlFolder = normalizedFolder ? `${normalizedFolder}/` : "";
+        relativePath = `/uploads/${urlFolder}${year}/${fileName}`;
+      }
 
       return {
-        filename: `${sanitizedName}-${uniqueSuffix}${ext}`,
+        filename: fileName,
         originalName: file.originalname,
-        path: blob.url, // Vercel Blob URL
+        path: relativePath.replace(/\\/g, "/"), // Ensure forward slashes for URLs
         size: file.size,
         mimetype: file.mimetype,
         uploadedAt: new Date(),
@@ -46,15 +66,15 @@ export const uploadToVercelBlob = async (files, folder = "") => {
 
     return await Promise.all(uploadPromises);
   } catch (error) {
-    console.error("Error uploading to Vercel Blob:", error);
-    throw new Error("Failed to upload files to cloud storage");
+    console.error("Error saving files locally:", error);
+    throw new Error("Failed to upload files to storage");
   }
 };
 
 /**
- * Upload single file to Vercel Blob storage
+ * Upload single file to local storage
  * @param {Object} file - Single file from multer (req.file)
- * @param {string} folder - Optional folder path prefix in blob storage
+ * @param {string} folder - Optional folder path prefix
  * @returns {Promise<Object>} - Uploaded file metadata with URL
  */
 export const uploadSingleToVercelBlob = async (file, folder = "") => {

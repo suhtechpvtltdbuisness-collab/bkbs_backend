@@ -14,6 +14,8 @@ import reportRoutes from "./reportRoutes.js";
 import attendanceRoutes from "./attendanceRoutes.js";
 import campRoutes from "./campRoutes.js";
 import ocrRoutes from "./ocrRoutes.js";
+import uploadRoutes from "./uploadRoutes.js";
+
 
 const router = express.Router();
 
@@ -75,5 +77,6 @@ router.use("/reports", reportRoutes);
 router.use("/attendance", attendanceRoutes);
 router.use("/camps", campRoutes);
 router.use("/ocr", ocrRoutes);
+router.use("/upload", uploadRoutes);
 
 export default router;

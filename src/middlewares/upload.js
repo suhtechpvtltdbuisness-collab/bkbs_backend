@@ -193,6 +193,17 @@ export const getFileUrl = (req, filePath) => {
   return fileUrl;
 };
 
+// Generic memory storage for direct upload endpoints
+const genericMemoryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+});
+
+export const uploadSingleMemory = genericMemoryUpload.single("file");
+export const uploadMultipleMemory = genericMemoryUpload.array("files", 10);
+
 export default {
   uploadCardDocuments,
   uploadSingleFile,
@@ -202,4 +213,7 @@ export default {
   mapUploadedLogoToBody,
   deleteFile,
   getFileUrl,
+  uploadSingleMemory,
+  uploadMultipleMemory,
 };
+
