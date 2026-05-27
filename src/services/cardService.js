@@ -798,7 +798,7 @@ class CardService {
   }
 
   /**
-   * Get all printed cards
+   * Get all printed cards (lightweight - no member/document joins)
    */
   async getAllPrintedCards(options = {}) {
     const { page = 1, limit = 10, search } = options;
@@ -808,77 +808,32 @@ class CardService {
       search,
     });
 
+    // Lightweight query: exclude heavy documents array, sort by _id (always indexed)
     const result = await cardRepository.findAll(filters, {
       page,
       limit,
-      sort: { _id: -1 }, // Use _id index to avoid slow disk sorts if compound index is missing
-      allowDiskUse: true,
-      select: "-__v",
-      countLimit: 10000, // Cap total count to avoid MongoNetworkTimeoutError on massive collections
+      sort: { _id: -1 },
+      allowDiskUse: false,
     });
 
-    const cardIds = result.cards.map((card) => card._id);
-    if (cardIds.length === 0) {
-      return await this.addTotalMembersToResult({
-        ...result,
-        cards: [],
-      });
+    if (!result.cards || result.cards.length === 0) {
+      return { ...result, cards: [] };
     }
 
-    const members = await CardMember.find({
-      cardId: { $in: cardIds },
-      isDeleted: false,
-    })
-      .select("cardId name relation documentId age")
-      .lean();
-
-    const membersByCardId = members.reduce((acc, member) => {
-      const key = member.cardId.toString();
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(member);
-      return acc;
-    }, {});
-
-    const cardsWithMembers = result.cards.map((card) => {
-      const memberCount = (membersByCardId[card._id.toString()] || []).length;
-      const cardObject = this.addTotalMembers(card, memberCount);
-      
-      let profileDoc = null;
-      if (Array.isArray(card.documents) && card.documents.length > 0) {
-        profileDoc = card.documents.find((doc) => doc.name === "profilePhoto");
-        if (!profileDoc) {
-          profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
-        }
-        if (!profileDoc) {
-          if (card.documents.length === 5) {
-            profileDoc = card.documents[4];
-          } else if (card.documents.length === 4) {
-            profileDoc = card.documents[3];
-          } else {
-            profileDoc = card.documents[2] || card.documents[0];
-          }
-        }
-      }
-
-      const image = profileDoc;
-      const profileImage = cardObject.profileImage || (profileDoc ? profileDoc.path : "");
-      
-      const { documents, ...cardWithoutDocs } = cardObject;
+    // Map cards using stored totalMember — no separate DB call needed
+    const cards = result.cards.map((card) => {
+      const cardObject = card?.toObject ? card.toObject() : { ...card };
       return {
-        ...cardWithoutDocs,
-        address: cardObject.address || "",
-        image,
-        profileImage,
-        members: membersByCardId[card._id.toString()] || [],
+        ...cardObject,
+        totalMember: Number(card.totalMember) || 0,
+        totalMembers: 1 + (Number(card.totalMember) || 0),
+        address: card.address || "",
+        profileImage: card.profileImage || "",
+        members: [],
       };
     });
 
-    return {
-      ...result,
-      cards: cardsWithMembers,
-    };
+    return { ...result, cards };
   }
 
   /**
