@@ -55,6 +55,10 @@ app.use(cookieParser());
 app.use("/uploads", checkFileExists);
 
 // Serve uploaded files statically
+// Supports persistent volumes (e.g. Railway volume) if UPLOAD_DIR is defined
+if (process.env.UPLOAD_DIR) {
+  app.use("/uploads", express.static(process.env.UPLOAD_DIR));
+}
 // For local development
 app.use("/uploads", express.static("uploads"));
 // For serverless environments (Vercel, Lambda) - serves from /tmp
