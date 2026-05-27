@@ -11,6 +11,35 @@ import CardMember from "../models/CardMember.js";
 import Payment from "../models/Payment.js";
 
 class CardService {
+  /**
+   * Extract profile pic from a card's documents array.
+   * Priority: document with filename "family_head_photo.jpg",
+   * then fallback to doc[2] if 4 docs, doc[3] if 5 docs.
+   */
+  extractProfilePic(documents = []) {
+    if (!Array.isArray(documents) || documents.length === 0) {
+      return null;
+    }
+
+    // 1. Look for family_head_photo by filename
+    const familyHeadPhoto = documents.find(
+      (doc) => doc.filename === "family_head_photo.jpg"
+    );
+    if (familyHeadPhoto) {
+      return familyHeadPhoto.path || null;
+    }
+
+    // 2. Fallback based on documents length
+    if (documents.length === 4 && documents[2]) {
+      return documents[2].path || null;
+    }
+    if (documents.length === 5 && documents[3]) {
+      return documents[3].path || null;
+    }
+
+    return null;
+  }
+
   addTotalMembers(card, memberCount) {
     const cardObject = card?.toObject ? card.toObject() : card;
 
@@ -743,12 +772,18 @@ class CardService {
       });
     }
 
-    const members = await CardMember.find({
-      cardId: { $in: cardIds },
-      isDeleted: false,
-    })
-      .select("cardId name relation documentId age")
-      .lean();
+    // Fetch members and documents in parallel
+    const [members, cardDocs] = await Promise.all([
+      CardMember.find({
+        cardId: { $in: cardIds },
+        isDeleted: false,
+      })
+        .select("cardId name relation documentId age")
+        .lean(),
+      Card.find({ _id: { $in: cardIds } })
+        .select("_id documents")
+        .lean(),
+    ]);
 
     const membersByCardId = members.reduce((acc, member) => {
       const key = member.cardId.toString();
@@ -759,8 +794,15 @@ class CardService {
       return acc;
     }, {});
 
+    // Build a map of cardId -> profilePic path
+    const profilePicByCardId = cardDocs.reduce((acc, doc) => {
+      acc[doc._id.toString()] = this.extractProfilePic(doc.documents);
+      return acc;
+    }, {});
+
     const cardsWithMembers = result.cards.map((card) => {
-      const memberCount = (membersByCardId[card._id.toString()] || []).length;
+      const cardIdStr = card._id.toString();
+      const memberCount = (membersByCardId[cardIdStr] || []).length;
       const cardObject = this.addTotalMembers(card, memberCount);
       
       let profileDoc = null;
@@ -783,11 +825,8 @@ class CardService {
       
       const { documents, ...cardWithoutDocs } = cardObject;
       return {
-        ...cardWithoutDocs,
-        address: cardObject.address || "",
-        image,
-        profileImage,
-        members: membersByCardId[card._id.toString()] || [],
+        ...cardObject,
+        profilePic: profilePicByCardId[cardIdStr] || null,
       };
     });
 
@@ -817,42 +856,46 @@ class CardService {
       select: "-__v",
     });
 
-    if (!result.cards || result.cards.length === 0) {
-      return { ...result, cards: [] };
+    const cardIds = result.cards.map((card) => card._id);
+    if (cardIds.length === 0) {
+      return await this.addTotalMembersToResult({
+        ...result,
+        cards: [],
+      });
     }
 
-    // Map cards — extract profile image from documents, use stored totalMember
-    const cards = result.cards.map((card) => {
-      let profileDoc = null;
-      if (Array.isArray(card.documents) && card.documents.length > 0) {
-        profileDoc = card.documents.find((doc) => doc.name === "profilePhoto");
-        if (!profileDoc) {
-          profileDoc = card.documents.find(
-            (doc) =>
-              doc.filename &&
-              doc.filename.toLowerCase().includes("head_photo"),
-          );
-        }
-        if (!profileDoc) {
-          if (card.documents.length === 5) {
-            profileDoc = card.documents[3];
-          } else if (card.documents.length === 4) {
-            profileDoc = card.documents[2];
-          }
-        }
+    // Fetch members and documents in parallel
+    const [members, cardDocs] = await Promise.all([
+      CardMember.find({
+        cardId: { $in: cardIds },
+        isDeleted: false,
+      })
+        .select("cardId name relation documentId age")
+        .lean(),
+      Card.find({ _id: { $in: cardIds } })
+        .select("_id documents")
+        .lean(),
+    ]);
+
+    const membersByCardId = members.reduce((acc, member) => {
+      const key = member.cardId.toString();
+      if (!acc[key]) {
+        acc[key] = [];
       }
 
-      const cardObject = card?.toObject ? card.toObject() : { ...card };
-      const { documents, ...cardWithoutDocs } = cardObject;
+    // Build a map of cardId -> profilePic path
+    const profilePicByCardId = cardDocs.reduce((acc, doc) => {
+      acc[doc._id.toString()] = this.extractProfilePic(doc.documents);
+      return acc;
+    }, {});
 
+    const cardsWithMembers = result.cards.map((card) => {
+      const cardIdStr = card._id.toString();
+      const memberCount = (membersByCardId[cardIdStr] || []).length;
+      const cardObject = this.addTotalMembers(card, memberCount);
       return {
-        ...cardWithoutDocs,
-        totalMember: Number(card.totalMember) || 0,
-        totalMembers: 1 + (Number(card.totalMember) || 0),
-        address: card.address || "",
-        image: profileDoc || null,
-        profileImage: card.profileImage || (profileDoc ? profileDoc.path : ""),
-        members: [],
+        ...cardObject,
+        profilePic: profilePicByCardId[cardIdStr] || null,
       };
     });
 

@@ -9,7 +9,7 @@
     "npm": ">=9.0.0"
   },
   "scripts": {
-    "start": "node src/server.js",
+    "start" : "node src/server.js",
     "start:railway": "sh scripts/start-railway.sh",
     "dev": "nodemon src/server.js",
     "build": "echo 'No build step required'",
@@ -18,7 +18,8 @@
     "migrate:down": "node src/migrations/runner.js down",
     "seed:admin": "node scripts/seedAdmin.js",
     "ocr:service": ".venv-ocr/bin/gunicorn -c scripts/ocr/gunicorn.conf.py --chdir scripts/ocr paddle_ocr_service:app",
-    "ocr:setup": "python3 -m venv .venv-ocr && .venv-ocr/bin/pip install -r requirements-ocr.txt"
+    "ocr:setup": "python3 -m venv .venv-ocr && .venv-ocr/bin/pip install -r requirements-ocr.txt",
+    "migrate:docs": "node scripts/migrate_to_disk.js"
   },
   "keywords": [
     "express",
