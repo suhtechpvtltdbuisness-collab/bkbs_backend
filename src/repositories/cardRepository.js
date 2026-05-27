@@ -63,16 +63,19 @@ class CardRepository {
       sort = { createdAt: -1 },
       select = LIST_CARD_SELECT,
       allowDiskUse = false,
+      countLimit,
     } = options;
 
     const skip = (page - 1) * limit;
     const query = this.buildListQuery(filters);
+    
+    const countOptions = countLimit ? { limit: countLimit } : {};
 
     const [cards, total] = await Promise.all([
       this.buildListQueryChain(query, { sort, select, allowDiskUse })
         .skip(skip)
         .limit(limit),
-      Card.countDocuments(query),
+      Card.countDocuments(query, countOptions),
     ]);
 
     return {

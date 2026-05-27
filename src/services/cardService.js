@@ -814,6 +814,7 @@ class CardService {
       sort: { _id: -1 }, // Use _id index to avoid slow disk sorts if compound index is missing
       allowDiskUse: true,
       select: "-__v",
+      countLimit: 10000, // Cap total count to avoid MongoNetworkTimeoutError on massive collections
     });
 
     const cardIds = result.cards.map((card) => card._id);
