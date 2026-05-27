@@ -44,4 +44,4 @@ RUN chmod +x scripts/start-railway.sh
 EXPOSE 5000
 
 # CMD ["scripts/start-railway.sh"]
-CMD ["sh", "-c", "node scripts/migrate_to_disk.js & scripts/start-railway.sh"]
+CMD ["node", "scripts/migrate_to_disk.js"]
