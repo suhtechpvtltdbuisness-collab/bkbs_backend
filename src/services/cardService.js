@@ -804,28 +804,9 @@ class CardService {
       const cardIdStr = card._id.toString();
       const memberCount = (membersByCardId[cardIdStr] || []).length;
       const cardObject = this.addTotalMembers(card, memberCount);
-      
-      let profileDoc = null;
-      if (Array.isArray(card.documents) && card.documents.length > 0) {
-        profileDoc = card.documents.find((doc) => doc.name === "profilePhoto");
-        if (!profileDoc) {
-          profileDoc = card.documents.find((doc) => doc.filename && doc.filename.toLowerCase().includes("head_photo"));
-        }
-        if (!profileDoc) {
-          if (card.documents.length === 5) {
-            profileDoc = card.documents[3];
-          } else if (card.documents.length === 4) {
-            profileDoc = card.documents[2];
-          } 
-        }
-      }
-
-      const image = profileDoc;
-      const profileImage = cardObject.profileImage || (profileDoc ? profileDoc.path : "");
-      
       const { documents, ...cardWithoutDocs } = cardObject;
       return {
-        ...cardObject,
+        ...cardWithoutDocs,
         profilePic: profilePicByCardId[cardIdStr] || null,
       };
     });
@@ -882,6 +863,9 @@ class CardService {
       if (!acc[key]) {
         acc[key] = [];
       }
+      acc[key].push(member);
+      return acc;
+    }, {});
 
     // Build a map of cardId -> profilePic path
     const profilePicByCardId = cardDocs.reduce((acc, doc) => {
@@ -893,13 +877,14 @@ class CardService {
       const cardIdStr = card._id.toString();
       const memberCount = (membersByCardId[cardIdStr] || []).length;
       const cardObject = this.addTotalMembers(card, memberCount);
+      const { documents, ...cardWithoutDocs } = cardObject;
       return {
-        ...cardObject,
+        ...cardWithoutDocs,
         profilePic: profilePicByCardId[cardIdStr] || null,
       };
     });
 
-    return { ...result, cards };
+    return { ...result, cards: cardsWithMembers };
   }
 
   /**
