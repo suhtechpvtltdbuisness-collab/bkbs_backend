@@ -798,7 +798,7 @@ class CardService {
   }
 
   /**
-   * Get all printed cards (lightweight - no member/document joins)
+   * Get all printed cards (no member join — uses stored totalMember)
    */
   async getAllPrintedCards(options = {}) {
     const { page = 1, limit = 10, search } = options;
@@ -808,27 +808,50 @@ class CardService {
       search,
     });
 
-    // Lightweight query: exclude heavy documents array, sort by _id (always indexed)
+    // Include documents (for profile image extraction), sort by _id (always indexed)
     const result = await cardRepository.findAll(filters, {
       page,
       limit,
       sort: { _id: -1 },
       allowDiskUse: false,
+      select: "-__v",
     });
 
     if (!result.cards || result.cards.length === 0) {
       return { ...result, cards: [] };
     }
 
-    // Map cards using stored totalMember — no separate DB call needed
+    // Map cards — extract profile image from documents, use stored totalMember
     const cards = result.cards.map((card) => {
+      let profileDoc = null;
+      if (Array.isArray(card.documents) && card.documents.length > 0) {
+        profileDoc = card.documents.find((doc) => doc.name === "profilePhoto");
+        if (!profileDoc) {
+          profileDoc = card.documents.find(
+            (doc) =>
+              doc.filename &&
+              doc.filename.toLowerCase().includes("head_photo"),
+          );
+        }
+        if (!profileDoc) {
+          if (card.documents.length === 5) {
+            profileDoc = card.documents[3];
+          } else if (card.documents.length === 4) {
+            profileDoc = card.documents[2];
+          }
+        }
+      }
+
       const cardObject = card?.toObject ? card.toObject() : { ...card };
+      const { documents, ...cardWithoutDocs } = cardObject;
+
       return {
-        ...cardObject,
+        ...cardWithoutDocs,
         totalMember: Number(card.totalMember) || 0,
         totalMembers: 1 + (Number(card.totalMember) || 0),
         address: card.address || "",
-        profileImage: card.profileImage || "",
+        image: profileDoc || null,
+        profileImage: card.profileImage || (profileDoc ? profileDoc.path : ""),
         members: [],
       };
     });
