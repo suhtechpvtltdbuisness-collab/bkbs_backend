@@ -30,7 +30,11 @@ app.use(async (req, res, next) => {
 });
 
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 app.use(mongoSanitize());
 
 // CORS
