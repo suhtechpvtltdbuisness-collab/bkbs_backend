@@ -98,7 +98,7 @@ export const createCardSchema = Joi.object({
 });
 
 export const updateCardSchema = Joi.object({
-  applicationDate: Joi.string().optional(),
+  applicationDate: Joi.string().optional().allow(""),
   status: Joi.string()
     .valid("pending", "approved", "rejected", "active", "expired")
     .optional(),
@@ -125,9 +125,9 @@ export const updateCardSchema = Joi.object({
     }),
   address: Joi.string().optional().allow(""),
   cardNo: Joi.string().optional(),
-  cardIssueDate: Joi.string().optional(),
-  cardExpiredDate: Joi.string().optional(),
-  verificationDate: Joi.string().optional(),
+  cardIssueDate: Joi.string().optional().allow(""),
+  cardExpiredDate: Joi.string().optional().allow(""),
+  verificationDate: Joi.string().optional().allow(""),
   totalMember: Joi.number().min(0).optional(),
   totalAmount: Joi.number().min(0).optional(),
   isPrint: Joi.boolean().optional(),
