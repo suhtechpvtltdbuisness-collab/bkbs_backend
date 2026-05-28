@@ -143,14 +143,40 @@ class CardService {
   }
 
   applyCardSearchFilters(filters = {}) {
-    const { search, ...rest } = filters;
+    const { search, createdAt, ...rest } = filters;
+    const query = { ...rest };
+
+    if (createdAt) {
+      // Check if YYYY-MM-DD format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(createdAt)) {
+        const start = new Date(createdAt);
+        start.setUTCHours(0, 0, 0, 0);
+        
+        const end = new Date(createdAt);
+        end.setUTCHours(23, 59, 59, 999);
+        
+        query.createdAt = { $gte: start, $lte: end };
+      } else {
+        const parsedDate = new Date(createdAt);
+        if (!isNaN(parsedDate.getTime())) {
+          const start = new Date(parsedDate);
+          start.setUTCHours(0, 0, 0, 0);
+          
+          const end = new Date(parsedDate);
+          end.setUTCHours(23, 59, 59, 999);
+          
+          query.createdAt = { $gte: start, $lte: end };
+        }
+      }
+    }
 
     if (!search) {
-      return rest;
+      return query;
     }
 
     return {
-      ...rest,
+      ...query,
       ...this.buildCardSearchFilter(search),
     };
   }
@@ -561,12 +587,70 @@ class CardService {
     return await this.addTotalMembersToResult(result);
   }
 
-  /**
-   * Get cards by creator
-   */
-  async getCardsByCreator(createdBy, options) {
-    const result = await cardRepository.findByCreatedBy(createdBy, options);
-    return await this.addTotalMembersToResult(result);
+  async getCardsByCreator(createdBy, options = {}) {
+    const { page = 1, limit = 10, search, createdAt, sort } = options;
+
+    const filters = this.applyCardSearchFilters({
+      createdBy,
+      search,
+      createdAt,
+    });
+
+    const sortOption = sort || (createdAt ? { createdAt: 1 } : { createdAt: -1 });
+
+    // Include documents (for profile image extraction), sort by options
+    const result = await cardRepository.findAll(filters, {
+      page,
+      limit,
+      sort: sortOption,
+      allowDiskUse: false,
+      select: "-__v",
+    });
+
+    const cardIds = result.cards.map((card) => card._id);
+    if (cardIds.length === 0) {
+      return await this.addTotalMembersToResult({
+        ...result,
+        cards: [],
+      });
+    }
+
+    // Fetch only members (documents are already in result.cards!)
+    const members = await CardMember.find({
+      cardId: { $in: cardIds },
+      isDeleted: false,
+    })
+      .select("cardId name relation documentId age")
+      .lean();
+
+    const membersByCardId = members.reduce((acc, member) => {
+      const key = member.cardId.toString();
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(member);
+      return acc;
+    }, {});
+
+    // Build a map of cardId -> profilePic path directly from result.cards
+    const profilePicByCardId = result.cards.reduce((acc, card) => {
+      acc[card._id.toString()] = this.extractProfilePic(card.documents);
+      return acc;
+    }, {});
+
+    const cardsWithMembers = result.cards.map((card) => {
+      const cardIdStr = card._id.toString();
+      const memberCount = (membersByCardId[cardIdStr] || []).length;
+      const cardObject = this.addTotalMembers(card, memberCount);
+      const { documents, ...cardWithoutDocs } = cardObject;
+      return {
+        ...cardWithoutDocs,
+        profilePic: profilePicByCardId[cardIdStr] || null,
+        members: membersByCardId[cardIdStr] || [],
+      };
+    });
+
+    return { ...result, cards: cardsWithMembers };
   }
 
   /**
@@ -750,16 +834,19 @@ class CardService {
   }
 
   async getAllVerifiedCards(options = {}) {
-    const { page = 1, limit = 10, search } = options;
+    const { page = 1, limit = 10, search, createdAt, sort } = options;
 
     // Query for cards where isPrint is false or missing
     const filters = this.applyCardSearchFilters({
       isPrint: { $ne: true },
       status: { $in: ["approved", "active"] }, // Only approved or active cards
       search,
+      createdAt,
     });
 
-    const result = await cardRepository.findAll(filters, { page, limit, select: "-__v" });
+    const sortOption = sort || (createdAt ? { createdAt: 1 } : { createdAt: -1 });
+
+    const result = await cardRepository.findAll(filters, { page, limit, select: "-__v", sort: sortOption });
 
     const cardIds = result.cards.map((card) => card._id);
     if (cardIds.length === 0) {
@@ -814,18 +901,21 @@ class CardService {
    * Get all printed cards (no member join — uses stored totalMember)
    */
   async getAllPrintedCards(options = {}) {
-    const { page = 1, limit = 10, search } = options;
+    const { page = 1, limit = 10, search, createdAt, sort } = options;
 
     const filters = this.applyCardSearchFilters({
       isPrint: true,
       search,
+      createdAt,
     });
+
+    const sortOption = sort || (createdAt ? { createdAt: 1 } : { _id: -1 });
 
     // Include documents (for profile image extraction), sort by _id (always indexed)
     const result = await cardRepository.findAll(filters, {
       page,
       limit,
-      sort: { _id: -1 },
+      sort: sortOption,
       allowDiskUse: false,
       select: "-__v",
     });

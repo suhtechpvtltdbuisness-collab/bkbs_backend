@@ -165,13 +165,19 @@ class CardController {
         filters.search = req.query.search;
       }
 
+      if (req.query.createdAt) {
+        filters.createdAt = req.query.createdAt;
+      }
+
       // Role-based filtering
       // If user is not admin, only show cards they created
       if (req.user.role !== "admin") {
         filters.createdBy = req.user.userId;
       }
 
-      const result = await cardService.getAllCards(filters, { page, limit });
+      const sort = req.query.sort ? { [req.query.sort.replace("-", "")]: req.query.sort.startsWith("-") ? -1 : 1 } : undefined;
+
+      const result = await cardService.getAllCards(filters, { page, limit, sort });
 
       res
         .status(200)
@@ -190,6 +196,9 @@ class CardController {
       const result = await cardService.getCardsByCreator(req.user.userId, {
         page,
         limit,
+        search: req.query.search,
+        createdAt: req.query.createdAt,
+        sort: req.query.sort ? { [req.query.sort.replace("-", "")]: req.query.sort.startsWith("-") ? -1 : 1 } : undefined,
       });
 
       res
@@ -209,6 +218,9 @@ class CardController {
       const result = await cardService.getCardsByCreator(req.params.employeeId, {
         page,
         limit,
+        search: req.query.search,
+        createdAt: req.query.createdAt,
+        sort: req.query.sort ? { [req.query.sort.replace("-", "")]: req.query.sort.startsWith("-") ? -1 : 1 } : undefined,
       });
 
       res
@@ -322,6 +334,8 @@ class CardController {
         page,
         limit,
         search: req.query.search,
+        createdAt: req.query.createdAt,
+        sort: req.query.sort ? { [req.query.sort.replace("-", "")]: req.query.sort.startsWith("-") ? -1 : 1 } : undefined,
       });
 
       res
@@ -344,6 +358,8 @@ class CardController {
         page,
         limit,
         search: req.query.search,
+        createdAt: req.query.createdAt,
+        sort: req.query.sort ? { [req.query.sort.replace("-", "")]: req.query.sort.startsWith("-") ? -1 : 1 } : undefined,
       });
 
       res
