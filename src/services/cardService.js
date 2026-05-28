@@ -800,6 +800,7 @@ class CardService {
       return {
         ...cardWithoutDocs,
         profilePic: profilePicByCardId[cardIdStr] || null,
+        members: membersByCardId[cardIdStr] || [],
       };
     });
 
@@ -868,6 +869,7 @@ class CardService {
       return {
         ...cardWithoutDocs,
         profilePic: profilePicByCardId[cardIdStr] || null,
+        members: membersByCardId[cardIdStr] || [],
       };
     });
 
