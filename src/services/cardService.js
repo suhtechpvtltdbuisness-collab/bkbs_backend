@@ -139,6 +139,56 @@ class CardService {
       orConditions.push({ _id: new mongoose.Types.ObjectId(term) });
     }
 
+    // Smart Multi-word / Full Name Search logic
+    const words = term.split(/\s+/).filter(Boolean);
+    if (words.length > 1) {
+      const escapedWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      
+      if (words.length === 2) {
+        const firstRegex = { $regex: escapedWords[0], $options: "i" };
+        const secondRegex = { $regex: escapedWords[1], $options: "i" };
+        
+        orConditions.push(
+          // First Name + Last Name
+          {
+            $and: [
+              { firstName: firstRegex },
+              { lastName: secondRegex }
+            ]
+          },
+          // First Name + Middle Name
+          {
+            $and: [
+              { firstName: firstRegex },
+              { middleName: secondRegex }
+            ]
+          },
+          // Middle Name + Last Name
+          {
+            $and: [
+              { middleName: firstRegex },
+              { lastName: secondRegex }
+            ]
+          }
+        );
+      } else if (words.length >= 3) {
+        const firstRegex = { $regex: escapedWords[0], $options: "i" };
+        const middleRegex = { $regex: escapedWords[1], $options: "i" };
+        const lastRegex = { $regex: escapedWords[2], $options: "i" };
+        
+        orConditions.push(
+          // First Name + Middle Name + Last Name
+          {
+            $and: [
+              { firstName: firstRegex },
+              { middleName: middleRegex },
+              { lastName: lastRegex }
+            ]
+          }
+        );
+      }
+    }
+
     return { $or: orConditions };
   }
 
