@@ -16,20 +16,21 @@ class CardRepository {
   async findById(id) {
     return await Card.findById(id)
       .populate("createdBy")
-      .populate("campId", "name lat long city state date");
+      .populate("campId", "name lat long city state date")
+      .lean();
   }
 
   async findByApplicationId(applicationId) {
     return await Card.findOne({ applicationId })
       .populate("createdBy")
-      .populate("campId", "name lat long city state date");
+      .populate("campId", "name lat long city state date")
+      .lean();
   }
 
   async findByCardNo(cardNo) {
-    return await Card.findOne({ applicationId: cardNo }).populate(
-      "campId",
-      "name lat long city state date",
-    );
+    return await Card.findOne({ applicationId: cardNo })
+      .populate("campId", "name lat long city state date")
+      .lean();
   }
 
   buildListQuery(filters = {}) {
@@ -147,28 +148,28 @@ class CardRepository {
       middleName: middleName || "",
       lastName: lastName || "",
       isDeleted: false,
-    });
+    }).lean();
   }
 
   async findByContact(contact) {
     return await Card.findOne({
       contact,
       isDeleted: false,
-    });
+    }).lean();
   }
 
   async findByEmail(email) {
     return await Card.findOne({
       email,
       isDeleted: false,
-    });
+    }).lean();
   }
 
   async findByAadhaarNumber(aadhaarNumber) {
     return await Card.findOne({
       aadhaarNumber,
       isDeleted: false,
-    });
+    }).lean();
   }
 }
 

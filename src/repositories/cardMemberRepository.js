@@ -11,19 +11,19 @@ class CardMemberRepository {
   }
 
   async findById(id) {
-    return await CardMember.findById(id).populate("cardId");
+    return await CardMember.findById(id).populate("cardId").lean();
   }
 
   async findByCardId(cardId) {
-    return await CardMember.find({ cardId, isDeleted: false }).populate(
-      "cardId",
-    );
+    return await CardMember.find({ cardId, isDeleted: false })
+      .populate("cardId")
+      .lean();
   }
 
   async findByCardIdSimple(cardId) {
-    return await CardMember.find({ cardId, isDeleted: false }).select(
-      "-cardId",
-    );
+    return await CardMember.find({ cardId, isDeleted: false })
+      .select("-cardId")
+      .lean();
   }
 
   async findAll(filters = {}, options = {}) {
@@ -37,7 +37,8 @@ class CardMemberRepository {
       .populate("cardId")
       .sort(sort)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await CardMember.countDocuments(query);
 

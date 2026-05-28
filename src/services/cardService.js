@@ -749,9 +749,6 @@ class CardService {
     };
   }
 
-  /**
-   * Get all verified (not printed) cards
-   */
   async getAllVerifiedCards(options = {}) {
     const { page = 1, limit = 10, search } = options;
 
@@ -772,18 +769,13 @@ class CardService {
       });
     }
 
-    // Fetch members and documents in parallel
-    const [members, cardDocs] = await Promise.all([
-      CardMember.find({
-        cardId: { $in: cardIds },
-        isDeleted: false,
-      })
-        .select("cardId name relation documentId age")
-        .lean(),
-      Card.find({ _id: { $in: cardIds } })
-        .select("_id documents")
-        .lean(),
-    ]);
+    // Fetch only members (documents are already in result.cards!)
+    const members = await CardMember.find({
+      cardId: { $in: cardIds },
+      isDeleted: false,
+    })
+      .select("cardId name relation documentId age")
+      .lean();
 
     const membersByCardId = members.reduce((acc, member) => {
       const key = member.cardId.toString();
@@ -794,9 +786,9 @@ class CardService {
       return acc;
     }, {});
 
-    // Build a map of cardId -> profilePic path
-    const profilePicByCardId = cardDocs.reduce((acc, doc) => {
-      acc[doc._id.toString()] = this.extractProfilePic(doc.documents);
+    // Build a map of cardId -> profilePic path directly from result.cards
+    const profilePicByCardId = result.cards.reduce((acc, card) => {
+      acc[card._id.toString()] = this.extractProfilePic(card.documents);
       return acc;
     }, {});
 
@@ -845,18 +837,13 @@ class CardService {
       });
     }
 
-    // Fetch members and documents in parallel
-    const [members, cardDocs] = await Promise.all([
-      CardMember.find({
-        cardId: { $in: cardIds },
-        isDeleted: false,
-      })
-        .select("cardId name relation documentId age")
-        .lean(),
-      Card.find({ _id: { $in: cardIds } })
-        .select("_id documents")
-        .lean(),
-    ]);
+    // Fetch only members (documents are already in result.cards!)
+    const members = await CardMember.find({
+      cardId: { $in: cardIds },
+      isDeleted: false,
+    })
+      .select("cardId name relation documentId age")
+      .lean();
 
     const membersByCardId = members.reduce((acc, member) => {
       const key = member.cardId.toString();
@@ -867,9 +854,9 @@ class CardService {
       return acc;
     }, {});
 
-    // Build a map of cardId -> profilePic path
-    const profilePicByCardId = cardDocs.reduce((acc, doc) => {
-      acc[doc._id.toString()] = this.extractProfilePic(doc.documents);
+    // Build a map of cardId -> profilePic path directly from result.cards
+    const profilePicByCardId = result.cards.reduce((acc, card) => {
+      acc[card._id.toString()] = this.extractProfilePic(card.documents);
       return acc;
     }, {});
 
