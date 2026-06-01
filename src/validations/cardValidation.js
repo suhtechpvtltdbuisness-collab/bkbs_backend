@@ -4,7 +4,7 @@ export const createCardSchema = Joi.object({
   applicationId: Joi.string().optional(),
   applicationDate: Joi.string().optional(),
   status: Joi.string()
-    .valid("pending", "approved", "rejected", "active", "expired")
+    .valid("pending", "approved", "rejected", "active", "expired", "exported")
     .optional(),
   firstName: Joi.string().required().messages({
     "any.required": "First name is required",
@@ -100,7 +100,7 @@ export const createCardSchema = Joi.object({
 export const updateCardSchema = Joi.object({
   applicationDate: Joi.string().optional().allow(""),
   status: Joi.string()
-    .valid("pending", "approved", "rejected", "active", "expired")
+    .valid("pending", "approved", "rejected", "active", "expired", "exported")
     .optional(),
   firstName: Joi.string().optional(),
   middleName: Joi.string().optional().allow(""),
@@ -147,12 +147,12 @@ export const updateCardSchema = Joi.object({
 
 export const updateCardStatusSchema = Joi.object({
   status: Joi.string()
-    .valid("pending", "approved", "rejected", "active", "expired")
+    .valid("pending", "approved", "rejected", "active", "expired", "exported")
     .required()
     .messages({
       "any.required": "Status is required",
       "any.only":
-        "Status must be one of: pending, approved, rejected, active, expired",
+        "Status must be one of: pending, approved, rejected, active, expired, exported",
     }),
 });
 

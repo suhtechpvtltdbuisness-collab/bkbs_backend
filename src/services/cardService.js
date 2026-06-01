@@ -52,8 +52,17 @@ class CardService {
         ? memberCount
         : Number(cardObject.totalMember) || 0;
 
+    // Map database status to logical status for presentation
+    let logicalStatus = cardObject.status;
+    if (cardObject.isPrint) {
+      logicalStatus = "exported";
+    } else if (logicalStatus === "active") {
+      logicalStatus = "approved";
+    }
+
     return {
       ...cardObject,
+      status: logicalStatus,
       totalMember: normalizedMemberCount,
       totalMembers: 1 + normalizedMemberCount,
     };
@@ -233,6 +242,13 @@ class CardService {
 
   normalizeCardOptionalFields(cardData = {}) {
     const normalized = { ...cardData };
+
+    if (Object.hasOwn(normalized, "status")) {
+      if (normalized.status === "exported") {
+        normalized.status = "approved";
+        normalized.isPrint = true;
+      }
+    }
 
     if (Object.hasOwn(normalized, "alternateContact")) {
       normalized.alternateContact =
@@ -788,10 +804,15 @@ class CardService {
    */
   async updateCardStatus(id, status) {
     const updateData = { status };
-    if (["approved", "active"].includes(status)) {
+    if (status === "exported") {
+      updateData.status = "approved";
+      updateData.isPrint = true;
+      updateData.verificationDate = new Date().toISOString().split("T")[0];
+    } else if (["approved", "active"].includes(status)) {
       updateData.verificationDate = new Date().toISOString().split("T")[0];
     } else {
       updateData.verificationDate = "";
+      updateData.isPrint = false;
     }
 
     const card = await cardRepository.updateById(id, updateData);
@@ -870,16 +891,20 @@ class CardService {
   async getCardStats() {
     const totalCards = await cardRepository.count();
     const pendingCards = await cardRepository.count({ status: "pending" });
-    const approvedCards = await cardRepository.count({ status: "approved" });
-    const activeCards = await cardRepository.count({ status: "active" });
-    const expiredCards = await cardRepository.count({ status: "expired" });
+    const approvedCards = await cardRepository.count({ status: "approved", isPrint: { $ne: true } });
+    const activeCards = await cardRepository.count({ status: "active", isPrint: { $ne: true } });
+    const expiredCards = await cardRepository.count({ status: "expired", isPrint: { $ne: true } });
+    const rejectedCards = await cardRepository.count({ status: "rejected", isPrint: { $ne: true } });
+    const exportedCards = await cardRepository.count({ isPrint: true });
 
     return {
       total: totalCards,
       pending: pendingCards,
-      approved: approvedCards,
+      approved: approvedCards + activeCards,
       active: activeCards,
+      rejected: rejectedCards,
       expired: expiredCards,
+      exported: exportedCards,
     };
   }
 

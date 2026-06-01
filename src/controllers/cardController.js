@@ -148,17 +148,20 @@ class CardController {
       const { page, limit } = paginate(req.query.page, req.query.limit);
       const filters = {};
 
-      const allowedStatuses = ["pending", "rejected", "expired"];
-
       // Apply filters
       if (req.query.status) {
-        if (allowedStatuses.includes(req.query.status)) {
-          filters.status = req.query.status;
+        const queryStatus = req.query.status.toLowerCase();
+        if (queryStatus === "exported") {
+          filters.isPrint = true;
+        } else if (queryStatus === "approved") {
+          filters.status = { $in: ["approved", "active"] };
+          filters.isPrint = { $ne: true };
+        } else if (["pending", "rejected", "expired"].includes(queryStatus)) {
+          filters.status = queryStatus;
+          filters.isPrint = { $ne: true };
         } else {
           filters.status = { $in: [] };
         }
-      } else {
-        filters.status = { $in: allowedStatuses };
       }
 
       if (req.query.search) {
