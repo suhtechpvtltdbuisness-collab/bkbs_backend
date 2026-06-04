@@ -78,7 +78,7 @@ export const deleteOrganization = asyncHandler(async (req, res) => {
 /**
  * @desc    Get dashboard statistics
  * @route   GET /api/organizations/dashboard/stats
- * @access  Private (Admin)
+ * @access  Private (Admin, Editor, Employee)
  */
 export const getDashboardStats = asyncHandler(async (req, res) => {
   const stats = await organizationService.getDashboardStats();
