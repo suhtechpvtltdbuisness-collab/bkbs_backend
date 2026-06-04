@@ -9,6 +9,7 @@ import {
 import Card from "../models/Card.js";
 import CardMember from "../models/CardMember.js";
 import Payment from "../models/Payment.js";
+import User from "../models/User.js";
 
 class CardService {
   /**
@@ -148,6 +149,10 @@ class CardService {
       orConditions.push({ _id: new mongoose.Types.ObjectId(term) });
     }
 
+    if (/^\d+(\.\d+)?$/.test(term)) {
+      orConditions.push({ totalAmount: Number(term) });
+    }
+
     // Smart Multi-word / Full Name Search logic
     const words = term.split(/\s+/).filter(Boolean);
     if (words.length > 1) {
@@ -201,7 +206,37 @@ class CardService {
     return { $or: orConditions };
   }
 
-  applyCardSearchFilters(filters = {}) {
+  async findCreatorIdsBySearch(searchTerm) {
+    if (typeof searchTerm !== "string") {
+      return [];
+    }
+
+    const term = searchTerm.trim();
+    if (!term) {
+      return [];
+    }
+
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const words = term.split(/\s+/).filter(Boolean);
+
+    const userQuery = { isDeleted: false };
+    if (words.length > 1) {
+      userQuery.$and = words.map((word) => ({
+        name: {
+          $regex: word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          $options: "i",
+        },
+      }));
+    } else {
+      userQuery.name = { $regex: escapedTerm, $options: "i" };
+    }
+
+    const users = await User.find(userQuery).select("_id").lean();
+    // Cards store createdBy as string userId, not ObjectId
+    return users.map((user) => user._id.toString());
+  }
+
+  async applyCardSearchFilters(filters = {}) {
     const { search, createdAt, ...rest } = filters;
     const query = { ...rest };
 
@@ -234,9 +269,16 @@ class CardService {
       return query;
     }
 
+    const searchFilter = this.buildCardSearchFilter(search);
+    const creatorIds = await this.findCreatorIdsBySearch(search);
+
+    if (creatorIds.length > 0 && searchFilter.$or) {
+      searchFilter.$or.push({ createdBy: { $in: creatorIds } });
+    }
+
     return {
       ...query,
-      ...this.buildCardSearchFilter(search),
+      ...searchFilter,
     };
   }
 
@@ -647,7 +689,7 @@ class CardService {
    */
   async getAllCards(filters, options) {
     const result = await cardRepository.findAll(
-      this.applyCardSearchFilters(filters),
+      await this.applyCardSearchFilters(filters),
       options,
     );
     return await this.addTotalMembersToResult(result);
@@ -656,7 +698,7 @@ class CardService {
   async getCardsByCreator(createdBy, options = {}) {
     const { page = 1, limit = 10, search, createdAt, sort } = options;
 
-    const filters = this.applyCardSearchFilters({
+    const filters = await this.applyCardSearchFilters({
       createdBy,
       search,
       createdAt,
@@ -912,7 +954,7 @@ class CardService {
     const { page = 1, limit = 10, search, createdAt, sort } = options;
 
     // Query for cards where isPrint is false or missing
-    const filters = this.applyCardSearchFilters({
+    const filters = await this.applyCardSearchFilters({
       isPrint: { $ne: true },
       status: { $in: ["approved", "active"] }, // Only approved or active cards
       search,
@@ -978,7 +1020,7 @@ class CardService {
   async getAllPrintedCards(options = {}) {
     const { page = 1, limit = 10, search, createdAt, sort } = options;
 
-    const filters = this.applyCardSearchFilters({
+    const filters = await this.applyCardSearchFilters({
       isPrint: true,
       search,
       createdAt,
