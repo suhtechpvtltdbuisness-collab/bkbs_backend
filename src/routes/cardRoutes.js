@@ -31,7 +31,11 @@ router.get("/check/aadhaar", cardController.checkAadhaarExists);
 router.use(authenticate);
 
 // Card routes
-router.get("/", cardController.getAllCards);
+router.get(
+  "/",
+  authorize("admin", "editor", "employee"),
+  cardController.getAllCards,
+);
 router.get("/verified/not-printed", cardController.getAllVerifiedCards);
 router.get("/printed", cardController.getAllPrintedCards);
 router.get("/my-cards", cardController.getMyCards);
@@ -77,7 +81,7 @@ router.patch(
 
 router.delete(
   "/:id",
-  authorize("admin", "employee"),
+  authorize("admin", "editor"),
   cardController.deleteCard,
 );
 

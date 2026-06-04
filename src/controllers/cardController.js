@@ -139,9 +139,7 @@ class CardController {
   }
 
   /**
-   * Get all cards
-   * Admin: sees all cards
-   * Employee/Editor: sees only cards created by them
+   * Get all cards (admin, editor, employee)
    */
   async getAllCards(req, res, next) {
     try {
@@ -170,12 +168,6 @@ class CardController {
 
       if (req.query.createdAt) {
         filters.createdAt = req.query.createdAt;
-      }
-
-      // Role-based filtering
-      // If user is not admin, only show cards they created
-      if (req.user.role !== "admin") {
-        filters.createdBy = req.user.userId;
       }
 
       const sort = req.query.sort ? { [req.query.sort.replace("-", "")]: req.query.sort.startsWith("-") ? -1 : 1 } : undefined;
