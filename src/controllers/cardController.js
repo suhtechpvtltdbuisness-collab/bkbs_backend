@@ -231,7 +231,69 @@ class CardController {
    */
   async updateCard(req, res, next) {
     try {
-      const card = await cardService.updateCard(req.params.id, req.body);
+      const updateData = { ...req.body };
+
+      if (typeof updateData.documents === "string") {
+        try {
+          updateData.documents = JSON.parse(updateData.documents);
+        } catch (error) {
+          // If parsing fails, ignore documents metadata
+        }
+      }
+      const bodyDocuments = Array.isArray(updateData.documents)
+        ? updateData.documents
+        : [];
+
+      if (req.files && req.files.documents && req.files.documents.length > 0) {
+        const useVercelBlob =
+          process.env.BLOB_READ_WRITE_TOKEN &&
+          (process.env.VERCEL || process.env.NODE_ENV === "production");
+
+        if (useVercelBlob) {
+          try {
+            const uploaded = await uploadToVercelBlob(req.files.documents);
+            updateData.documents = uploaded.map((file, idx) => ({
+              name: bodyDocuments[idx]?.name || "",
+              ...file,
+            }));
+          } catch (error) {
+            console.error("Vercel Blob upload error:", error);
+            throw new Error("Failed to upload documents to cloud storage");
+          }
+        } else {
+          updateData.documents = req.files.documents.map((file, idx) => {
+            let relativePath = file.path;
+
+            if (relativePath.startsWith("/tmp/uploads/")) {
+              relativePath = relativePath.replace("/tmp/uploads/", "/uploads/");
+            } else if (relativePath.includes("/uploads/")) {
+              relativePath = relativePath.substring(
+                relativePath.indexOf("/uploads/"),
+              );
+            }
+
+            return {
+              name: bodyDocuments[idx]?.name || "",
+              filename: file.filename,
+              originalName: file.originalname,
+              path: relativePath,
+              size: file.size,
+              mimetype: file.mimetype,
+              uploadedAt: new Date(),
+            };
+          });
+        }
+      }
+
+      if (typeof updateData.members === "string") {
+        try {
+          updateData.members = JSON.parse(updateData.members);
+        } catch (error) {
+          delete updateData.members;
+        }
+      }
+
+      const card = await cardService.updateCard(req.params.id, updateData);
 
       res
         .status(200)

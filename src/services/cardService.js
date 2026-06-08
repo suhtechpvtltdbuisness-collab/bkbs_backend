@@ -782,10 +782,12 @@ class CardService {
     }
 
     const normalizedUpdateData = this.normalizeCardOptionalFields(updateData);
-    const hasMembersUpdate = Object.hasOwn(normalizedUpdateData, "members");
-    const normalizedMembers = hasMembersUpdate
+    const hasMembersInPayload = Object.hasOwn(normalizedUpdateData, "members");
+    const normalizedMembers = hasMembersInPayload
       ? this.normalizeMembersInput(normalizedUpdateData.members)
       : [];
+    const shouldUpdateMembers =
+      hasMembersInPayload && normalizedMembers.length > 0;
 
     delete normalizedUpdateData.members;
 
@@ -796,7 +798,7 @@ class CardService {
 
     let card;
 
-    if (hasMembersUpdate) {
+    if (shouldUpdateMembers) {
       card = await Card.findOneAndUpdate(
         { _id: id, isDeleted: false },
         {

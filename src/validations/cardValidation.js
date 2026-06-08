@@ -131,6 +131,21 @@ export const updateCardSchema = Joi.object({
   totalMember: Joi.number().min(0).optional(),
   totalAmount: Joi.number().min(0).optional(),
   isPrint: Joi.boolean().optional(),
+  documents: Joi.array()
+    .items(
+      Joi.object({
+        _id: Joi.string().optional(),
+        name: Joi.string().optional().allow(""),
+        filename: Joi.string().optional(),
+        originalName: Joi.string().optional(),
+        path: Joi.string().optional(),
+        size: Joi.number().optional(),
+        mimetype: Joi.string().optional(),
+        uploadedAt: Joi.date().optional(),
+      }),
+    )
+    .max(5)
+    .optional(),
   members: Joi.array()
     .items(
       Joi.object({

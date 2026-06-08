@@ -74,7 +74,12 @@ router.post(
   cardController.createCard,
 );
 
-router.put("/:id", validate(updateCardSchema), cardController.updateCard);
+router.put(
+  "/:id",
+  uploadCardDocuments,
+  validate(updateCardSchema),
+  cardController.updateCard,
+);
 
 router.patch(
   "/:id/status",
