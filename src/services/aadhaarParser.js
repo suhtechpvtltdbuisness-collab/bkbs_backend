@@ -277,6 +277,30 @@ const normalizeAddressText = (text) => {
   return normalized;
 };
 
+const formatAddressSpacing = (address) => {
+  if (!address) {
+    return address;
+  }
+
+  let formatted = address;
+
+  formatted = formatted.replace(/\b(Awarganj)\b/gi, "Anwarganj");
+  formatted = formatted.replace(/\b(?:Awaa|Awagaa|Awag\w*)\b/gi, " ");
+  formatted = formatted.replace(/([a-z\d])(PO\s*:)/gi, "$1, $2");
+  formatted = formatted.replace(/([a-z])(D(?:IST|ST)\s*:?)/gi, "$1, $2");
+  formatted = formatted.replace(/\b(PO)\s*:\s*/gi, "PO: ");
+  formatted = formatted.replace(/\bD(?:IST|ST)\s*:?\s*/gi, "DIST: ");
+  formatted = formatted.replace(/\bPO:\s*Awarganj\b/gi, "PO: Anwarganj");
+  formatted = formatted.replace(/\b(Awarganj)\b/gi, "Anwarganj");
+  formatted = formatted.replace(/\b(Kanpur)(Nagar)\b/gi, "$1 $2");
+  formatted = formatted.replace(/\b(Anwarganj)(PO\s*:)/gi, "$1, $2");
+  formatted = formatted.replace(/\s*,\s*/g, ", ");
+  formatted = formatted.replace(/,\s*,+/g, ", ");
+  formatted = formatted.replace(/\s{2,}/g, " ");
+
+  return formatted.trim();
+};
+
 const stripInlineBackNoise = (text) => {
   if (!text) return text;
 
@@ -433,6 +457,7 @@ export const parseBack = (rawText) => {
   address = extractBestAddressSpan(address);
   address = appendMissingState(address, text, pincode);
   address = stripInlineBackNoise(address);
+  address = formatAddressSpacing(address);
   address = address.replace(/,\s*Uttar Pradesh,\s*Uttar Pradesh\b/gi, ", Uttar Pradesh");
   address = address
     .replace(/^(?:address|add\s*ress|aadress|aadres|adress|पता)\s*[:：]\s*/i, "")
