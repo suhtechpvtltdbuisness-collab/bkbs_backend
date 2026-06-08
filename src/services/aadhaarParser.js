@@ -160,6 +160,9 @@ const isBackNoiseSegment = (segment) => {
   ) {
     return true;
   }
+  if (/^details?\s*$/i.test(value)) {
+    return true;
+  }
   return false;
 };
 
@@ -284,8 +287,44 @@ const stripInlineBackNoise = (text) => {
     )
     .replace(/\bdetailsas\b/gi, " ")
     .replace(/\bdetailse\b/gi, " ")
+    .replace(/,\s*details?\s*$/gi, " ")
+    .replace(/\bdetails?\s*$/gi, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
+};
+
+const extractStateName = (text) => {
+  const patterns = [
+    /\b(U+\w*\s*tar\s*Pradesh)\b/gi,
+    /\b([A-Za-z]+\s+Pradesh)\b/gi,
+    /\b([A-Za-z]{4,}Pradesh)\b/gi,
+  ];
+
+  for (const pattern of patterns) {
+    const matches = [...text.matchAll(pattern)];
+    if (matches.length) {
+      return normalizeAddressText(matches[matches.length - 1][1]);
+    }
+  }
+
+  return null;
+};
+
+const appendMissingState = (address, rawText, pincode) => {
+  if (!address || /pradesh\b/i.test(address)) {
+    return address;
+  }
+
+  const state = extractStateName(rawText);
+  if (state) {
+    return `${address.replace(/[,;:\-\s]+$/, "")}, ${state}`;
+  }
+
+  if (pincode && /^208/.test(pincode)) {
+    return `${address.replace(/[,;:\-\s]+$/, "")}, Uttar Pradesh`;
+  }
+
+  return address;
 };
 
 const normalizeAddressPartKey = (part) =>
@@ -353,6 +392,14 @@ const extractBestAddressSpan = (address) => {
 
   if (end === start) {
     end = cleaned.length;
+  } else {
+    const tail = cleaned.slice(end, end + 50);
+    const stateAfterDistrict = tail.match(
+      /^\s*[,.\-–]?\s*((?:U+\w*\s*tar|[A-Za-z]+)\s*Pradesh)\b/i,
+    );
+    if (stateAfterDistrict) {
+      end += stateAfterDistrict.index + stateAfterDistrict[0].length;
+    }
   }
 
   return cleaned.slice(start, end).trim();
@@ -384,6 +431,8 @@ export const parseBack = (rawText) => {
   address = stripInlineBackNoise(address);
   address = dedupeAddressParts(address);
   address = extractBestAddressSpan(address);
+  address = appendMissingState(address, text, pincode);
+  address = stripInlineBackNoise(address);
   address = address.replace(/,\s*Uttar Pradesh,\s*Uttar Pradesh\b/gi, ", Uttar Pradesh");
   address = address
     .replace(/^(?:address|add\s*ress|aadress|aadres|adress|पता)\s*[:：]\s*/i, "")
