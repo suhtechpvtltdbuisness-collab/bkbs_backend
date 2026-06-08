@@ -27,32 +27,43 @@ router.get("/check/name", cardController.checkNameExists);
 router.get("/check/email", cardController.checkEmailExists);
 router.get("/check/aadhaar", cardController.checkAadhaarExists);
 
-// Protected routes - All card routes require authentication
-router.use(authenticate);
-
-// Card routes
+// Authenticated specific GET routes — registered before the public "/:id"
+// route so single-segment paths (e.g. /printed) are not shadowed by it.
 router.get(
   "/",
+  authenticate,
   authorize("admin", "editor", "employee"),
   cardController.getAllCards,
 );
-router.get("/verified/not-printed", cardController.getAllVerifiedCards);
-router.get("/printed", cardController.getAllPrintedCards);
-router.get("/my-cards", cardController.getMyCards);
+router.get(
+  "/verified/not-printed",
+  authenticate,
+  cardController.getAllVerifiedCards,
+);
+router.get("/printed", authenticate, cardController.getAllPrintedCards);
+router.get("/my-cards", authenticate, cardController.getMyCards);
 router.get(
   "/employee/:employeeId",
+  authenticate,
   authorize("admin", "editor"),
   cardController.getCardsByEmployee,
 );
-router.get("/stats", authorize("admin"), cardController.getCardStats);
+router.get("/stats", authenticate, authorize("admin"), cardController.getCardStats);
 
 router.put(
   "/print-status",
+  authenticate,
   authorize("admin", "employee"),
   validate(updateIsPrintSchema),
   cardController.updateIsPrintStatus,
 );
+
+// Public route - get card by ID (no authentication required)
 router.get("/:id", cardController.getCardById);
+
+// Protected routes - everything below requires authentication
+router.use(authenticate);
+
 router.get("/:id/with-members", cardController.getCardWithMembers);
 
 router.post(

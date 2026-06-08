@@ -10,15 +10,15 @@ import {
 
 const router = express.Router();
 
+// Public route - get members by card ID (no authentication required)
+router.get("/card/:cardId", cardMemberController.getMembersByCardId);
+
 // Protected routes - All card member routes require authentication
 router.use(authenticate);
 
 // Card member routes
 router.get("/", cardMemberController.getAllCardMembers);
 router.get("/:id", cardMemberController.getCardMemberById);
-
-// Get members by card ID
-router.get("/card/:cardId", cardMemberController.getMembersByCardId);
 
 // Add single card member
 router.post(
