@@ -1,7 +1,7 @@
 import cardService from "../services/cardService.js";
-import { ApiResponse } from "../utils/apiResponse.js";
+import { ApiError, ApiResponse } from "../utils/apiResponse.js";
 import { paginate } from "../utils/helpers.js";
-import { uploadToVercelBlob } from "../utils/vercelBlob.js";
+import { uploadToVercelBlob, storeUploadedImage } from "../utils/vercelBlob.js";
 
 class CardController {
   /**
@@ -258,6 +258,34 @@ class CardController {
   }
 
   /**
+   * Distribute (settle) a card - upload recipient photo and mark distributed
+   */
+  async distributeCard(req, res, next) {
+    try {
+      const distributedImage = await storeUploadedImage(
+        req.file,
+        req.body?.image,
+        "distributions",
+      );
+
+      if (!distributedImage) {
+        throw new ApiError(400, "Image is required");
+      }
+
+      const card = await cardService.distributeCard(req.params.id, {
+        distributedImage,
+        distributedBy: req.user.userId,
+      });
+
+      res
+        .status(200)
+        .json(new ApiResponse(200, card, "Card distributed successfully"));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Issue card (generate card number)
    */
   async issueCard(req, res, next) {
@@ -354,6 +382,7 @@ class CardController {
         limit,
         search: req.query.search,
         createdAt: req.query.createdAt,
+        distributed: req.query.distributed,
         sort: req.query.sort ? { [req.query.sort.replace("-", "")]: req.query.sort.startsWith("-") ? -1 : 1 } : undefined,
       });
 

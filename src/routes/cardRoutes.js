@@ -2,7 +2,7 @@ import express from "express";
 import cardController from "../controllers/cardController.js";
 import { authenticate, authorize } from "../middlewares/auth.js";
 import validate from "../middlewares/validate.js";
-import { uploadCardDocuments } from "../middlewares/upload.js";
+import { uploadCardDocuments, uploadDistributionImage } from "../middlewares/upload.js";
 import {
   createCardSchema,
   updateCardSchema,
@@ -70,6 +70,13 @@ router.patch(
   authorize("admin", "employee"),
   validate(updateCardStatusSchema),
   cardController.updateCardStatus,
+);
+
+router.patch(
+  "/:id/distribute",
+  authorize("admin", "editor", "employee"),
+  uploadDistributionImage,
+  cardController.distributeCard,
 );
 
 router.patch(

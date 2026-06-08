@@ -55,7 +55,9 @@ class CardService {
 
     // Map database status to logical status for presentation
     let logicalStatus = cardObject.status;
-    if (cardObject.isPrint) {
+    if (cardObject.distributed) {
+      logicalStatus = "distributed";
+    } else if (cardObject.isPrint) {
       logicalStatus = "exported";
     } else if (logicalStatus === "active") {
       logicalStatus = "approved";
@@ -867,6 +869,40 @@ class CardService {
   }
 
   /**
+   * Distribute (settle) a printed card - record recipient photo and settlement metadata
+   */
+  async distributeCard(id, { distributedImage, distributedBy }) {
+    const card = await cardRepository.findById(id);
+
+    if (!card || card.isDeleted) {
+      throw new ApiError(404, "Card not found");
+    }
+
+    if (card.distributed) {
+      throw new ApiError(409, "Card already distributed");
+    }
+
+    const updatedCard = await Card.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          distributed: true,
+          status: "distributed",
+          distributedImage,
+          distributionDate: new Date(),
+          distributedBy,
+        },
+      },
+      { new: true, runValidators: true },
+    )
+      .populate("distributedBy", "name")
+      .lean();
+
+    const memberCount = await cardMemberRepository.countByCardId(id);
+    return this.addTotalMembers(updatedCard, memberCount);
+  }
+
+  /**
    * Issue card - Generate card number and activate
    */
   async issueCard(id, issueData = {}) {
@@ -1018,13 +1054,22 @@ class CardService {
    * Get all printed cards (no member join — uses stored totalMember)
    */
   async getAllPrintedCards(options = {}) {
-    const { page = 1, limit = 10, search, createdAt, sort } = options;
+    const { page = 1, limit = 10, search, createdAt, sort, distributed } =
+      options;
 
-    const filters = await this.applyCardSearchFilters({
+    const baseFilters = {
       isPrint: true,
       search,
       createdAt,
-    });
+    };
+
+    if (distributed === true || distributed === "true") {
+      baseFilters.distributed = true;
+    } else if (distributed === false || distributed === "false") {
+      baseFilters.distributed = { $ne: true };
+    }
+
+    const filters = await this.applyCardSearchFilters(baseFilters);
 
     const sortOption = sort || (createdAt ? { createdAt: 1 } : { _id: -1 });
 

@@ -5,6 +5,7 @@ const LIST_CARD_SELECT =
 const LIST_POPULATE = [
   { path: "createdBy", select: "name role employeeId email" },
   { path: "campId", select: "name lat long city state date" },
+  { path: "distributedBy", select: "name" },
 ];
 
 class CardRepository {

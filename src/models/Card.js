@@ -13,7 +13,14 @@ const cardSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "active", "expired"],
+      enum: [
+        "pending",
+        "approved",
+        "rejected",
+        "active",
+        "expired",
+        "distributed",
+      ],
       default: "pending",
     },
     firstName: {
@@ -138,6 +145,28 @@ const cardSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    distributed: {
+      type: Boolean,
+      default: false,
+    },
+    distributedImage: {
+      type: String,
+    },
+    distributionDate: {
+      type: Date,
+    },
+    distributedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    hasDuplicateReceipt: {
+      type: Boolean,
+      default: false,
+    },
+    duplicateReceiptCount: {
+      type: Number,
+      default: 0,
+    },
     isDeleted: {
       type: Boolean,
       default: false,
@@ -168,6 +197,7 @@ cardSchema.index(
   },
 );
 
+cardSchema.index({ isDeleted: 1, isPrint: 1, distributed: 1, createdAt: -1 });
 cardSchema.index({ isDeleted: 1, isPrint: 1, createdAt: -1  });
 cardSchema.index({ isDeleted: 1, isPrint: 1, status: 1, createdAt: -1 });
 cardSchema.index({ createdBy: 1, isDeleted: 1, createdAt: -1 });

@@ -82,7 +82,53 @@ export const uploadSingleToVercelBlob = async (file, folder = "") => {
   return result[0];
 };
 
+/**
+ * Resolve an uploaded image to a stored relative path.
+ * Handles multer memory storage, multer disk storage, and base64 string fallback.
+ * @param {Object} file - req.file from multer (optional)
+ * @param {string} base64 - base64 image string from JSON body (optional)
+ * @param {string} folder - target folder prefix
+ * @returns {Promise<string|null>} stored relative path or null
+ */
+export const storeUploadedImage = async (file, base64, folder = "") => {
+  if (file && file.buffer) {
+    const result = await uploadSingleToVercelBlob(file, folder);
+    return result.path;
+  }
+
+  if (file && file.path) {
+    let relativePath = file.path;
+    if (relativePath.startsWith("/tmp/uploads/")) {
+      relativePath = relativePath.replace("/tmp/uploads/", "/uploads/");
+    } else if (relativePath.includes("/uploads/")) {
+      relativePath = relativePath.substring(relativePath.indexOf("/uploads/"));
+    }
+    return relativePath.replace(/\\/g, "/");
+  }
+
+  if (base64 && typeof base64 === "string") {
+    const match = base64.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
+    const mimetype = match ? match[1] : "image/jpeg";
+    const data = match ? match[2] : base64;
+    const buffer = Buffer.from(data, "base64");
+    const ext = (mimetype.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "");
+    const result = await uploadSingleToVercelBlob(
+      {
+        buffer,
+        originalname: `image.${ext}`,
+        size: buffer.length,
+        mimetype,
+      },
+      folder,
+    );
+    return result.path;
+  }
+
+  return null;
+};
+
 export default {
   uploadToVercelBlob,
   uploadSingleToVercelBlob,
+  storeUploadedImage,
 };

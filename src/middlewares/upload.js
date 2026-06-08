@@ -106,6 +106,27 @@ export const uploadDoctorLogo = upload.single("logo");
  */
 export const uploadOrganizationLogo = upload.single("logo");
 
+// Image-only upload (distribution / payment proof). Larger limit for phone photos.
+const imageOnlyFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only JPEG, PNG, WEBP images are allowed."), false);
+  }
+};
+
+const imageUpload = multer({
+  storage: storage,
+  fileFilter: imageOnlyFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
+export const uploadDistributionImage = imageUpload.single("image");
+export const uploadPaymentProof = imageUpload.single("paymentProofImage");
+
 const aadhaarImageFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
 
@@ -209,6 +230,8 @@ export default {
   uploadSingleFile,
   uploadDoctorLogo,
   uploadOrganizationLogo,
+  uploadDistributionImage,
+  uploadPaymentProof,
   uploadAadhaarImage,
   mapUploadedLogoToBody,
   deleteFile,

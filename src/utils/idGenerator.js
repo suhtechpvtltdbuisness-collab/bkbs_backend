@@ -2,6 +2,7 @@ import crypto from "crypto";
 import User from "../models/User.js";
 import Card from "../models/Card.js";
 import Donation from "../models/Donation.js";
+import DuplicateReceipt from "../models/DuplicateReceipt.js";
 
 /**
  * ID Generator Utility
@@ -227,6 +228,38 @@ export const generateEnquiryId = async () => {
   return newId;
 };
 
+/**
+ * Generate a unique duplicate receipt number in format: DUP-YYYYMMDD-XXXX
+ */
+export const generateDuplicateReceiptNo = async () => {
+  const now = new Date();
+  const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const prefix = `DUP-${datePart}-`;
+
+  const last = await DuplicateReceipt.findOne({
+    receiptNo: { $regex: `^${prefix}` },
+  })
+    .sort({ receiptNo: -1 })
+    .select("receiptNo");
+
+  let nextNumber = 1;
+  if (last && last.receiptNo) {
+    const lastNumber = parseInt(last.receiptNo.slice(prefix.length), 10);
+    if (!isNaN(lastNumber)) {
+      nextNumber = lastNumber + 1;
+    }
+  }
+
+  const receiptNo = prefix + String(nextNumber).padStart(4, "0");
+
+  const exists = await DuplicateReceipt.exists({ receiptNo });
+  if (exists) {
+    return generateDuplicateReceiptNo();
+  }
+
+  return receiptNo;
+};
+
 export default {
   generateEmployeeId,
   generateApplicationId,
@@ -234,4 +267,5 @@ export default {
   generateCardNumber,
   generateUniqueId,
   generateEnquiryId,
+  generateDuplicateReceiptNo,
 };
