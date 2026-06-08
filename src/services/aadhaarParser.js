@@ -73,6 +73,16 @@ const extractGender = (text) => {
   return value === "male" ? "Male" : "Female";
 };
 
+const formatName = (name) => {
+  if (!name) return name;
+
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[^A-Za-z .'-]/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+};
+
 const extractName = (lines, dobLineIndex) => {
   const skipPattern =
     /government|india|aadhaar|aadhar|unique|identification|authority|uidai|dob|year|birth|male|female|\d{4}/i;
@@ -86,7 +96,11 @@ const extractName = (lines, dobLineIndex) => {
     return null;
   }
 
-  return candidates[candidates.length - 1];
+  const spacedCandidate = [...candidates]
+    .reverse()
+    .find((candidate) => /[a-z]\s[A-Z]/.test(candidate));
+
+  return formatName(spacedCandidate || candidates[candidates.length - 1]);
 };
 
 export const parseFront = (rawText) => {
