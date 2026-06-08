@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-import json
 import os
 import sys
 import tempfile
 import threading
-from pathlib import Path
 
 os.environ.setdefault("FLAGS_use_mkldnn", "0")
 os.environ.setdefault("OMP_NUM_THREADS", os.environ.get("OCR_OMP_THREADS", "2"))
@@ -13,17 +11,19 @@ os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 
 from flask import Flask, jsonify, request
 
-from image_preprocess import preprocess_image_bytes
+from image_preprocess import preprocess_image_bytes, preprocess_variants
 
 PORT = int(os.environ.get("PADDLE_OCR_PORT", "8090"))
 HOST = os.environ.get("PADDLE_OCR_HOST", "127.0.0.1")
 ENGINE_MODE = os.environ.get("PADDLE_OCR_ENGINE", "rapidocr").lower()
-DET_LIMIT_SIDE_LEN = int(os.environ.get("OCR_DET_LIMIT_SIDE_LEN", "1280"))
-USE_ANGLE_CLS = os.environ.get("OCR_USE_ANGLE_CLS", "false").lower() in (
+DET_LIMIT_SIDE_LEN = int(os.environ.get("OCR_DET_LIMIT_SIDE_LEN", "1920"))
+USE_ANGLE_CLS = os.environ.get("OCR_USE_ANGLE_CLS", "true").lower() in (
     "1",
     "true",
     "yes",
 )
+TEXT_SCORE = float(os.environ.get("OCR_TEXT_SCORE", "0.35"))
+DET_BOX_THRESH = float(os.environ.get("OCR_DET_BOX_THRESH", "0.35"))
 
 app = Flask(__name__)
 paddle_engine = None
@@ -44,14 +44,22 @@ def init_rapid_engine():
     global rapid_engine
     from rapidocr_onnxruntime import RapidOCR
 
-    rapid_engine = RapidOCR(
-        use_angle_cls=USE_ANGLE_CLS,
-        text_score=0.45,
-        det_model_path="",
-        det_limit_side_len=DET_LIMIT_SIDE_LEN,
-        det_limit_type="max",
-        det_box_thresh=0.45,
-    )
+    rapid_kwargs = {
+        "use_angle_cls": USE_ANGLE_CLS,
+        "text_score": TEXT_SCORE,
+        "det_limit_side_len": DET_LIMIT_SIDE_LEN,
+        "det_limit_type": "max",
+        "det_box_thresh": DET_BOX_THRESH,
+    }
+
+    try:
+        rapid_engine = RapidOCR(**rapid_kwargs)
+    except (TypeError, KeyError):
+        rapid_engine = RapidOCR(
+            use_angle_cls=USE_ANGLE_CLS,
+            text_score=TEXT_SCORE,
+        )
+
     return "rapidocr-onnx"
 
 
@@ -151,9 +159,110 @@ def run_ocr(image_path):
     return run_rapid_ocr(image_path)
 
 
-def run_ocr_locked(image_path):
+def _line_sort_key(line):
+    box = line.get("box")
+    if box:
+        return (box[0][1], box[0][0])
+    return (0, 0)
+
+
+def _is_low_quality_line(text):
+    cleaned = text.strip()
+    if len(cleaned) < 3:
+        return True
+
+    alnum_count = sum(ch.isalnum() for ch in cleaned)
+    if alnum_count / max(len(cleaned), 1) < 0.45:
+        return True
+
+    return False
+
+
+def _should_prefer_line(candidate, existing):
+    candidate_text = candidate.get("text", "").strip()
+    existing_text = existing.get("text", "").strip()
+
+    if candidate_text == existing_text:
+        return float(candidate.get("confidence") or 0) >= float(
+            existing.get("confidence") or 0
+        )
+
+    if candidate_text in existing_text:
+        return False
+
+    if existing_text in candidate_text:
+        return True
+
+    candidate_conf = float(candidate.get("confidence") or 0)
+    existing_conf = float(existing.get("confidence") or 0)
+
+    if abs(candidate_conf - existing_conf) >= 0.08:
+        return candidate_conf > existing_conf
+
+    return len(candidate_text) > len(existing_text)
+
+
+def merge_ocr_results(results):
+    merged_lines = {}
+
+    for result in results:
+        for line in result.get("lines") or []:
+            text = (line.get("text") or "").strip()
+            if not text or _is_low_quality_line(text):
+                continue
+
+            existing = merged_lines.get(text)
+            if existing is None:
+                for known_text, known_line in list(merged_lines.items()):
+                    if _should_prefer_line(line, known_line):
+                        if text in known_text or known_text in text:
+                            merged_lines.pop(known_text, None)
+                            merged_lines[text] = line
+                            break
+                else:
+                    merged_lines[text] = line
+                continue
+
+            if _should_prefer_line(line, existing):
+                merged_lines[text] = line
+
+    lines = sorted(merged_lines.values(), key=_line_sort_key)
+    text = "\n".join(line["text"] for line in lines if line.get("text"))
+    engine = next(
+        (result.get("engine") for result in results if result.get("engine")),
+        active_engine,
+    )
+
+    return {"text": text, "lines": lines, "engine": engine}
+
+
+def run_ocr_multi(image_variants):
+    results = []
+
+    for variant_bytes in image_variants:
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                temp_file.write(variant_bytes)
+                temp_path = temp_file.name
+
+            results.append(run_ocr(temp_path))
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    if not results:
+        return {"text": "", "lines": [], "engine": active_engine}
+
+    if len(results) == 1:
+        return results[0]
+
+    return merge_ocr_results(results)
+
+
+def run_ocr_locked(image_variants):
     with _ocr_lock:
-        return run_ocr(image_path)
+        return run_ocr_multi(image_variants)
 
 
 @app.get("/health")
@@ -176,26 +285,16 @@ def ocr():
     if not upload.filename:
         return jsonify({"success": False, "message": "image file is required"}), 400
 
-    temp_path = None
-
     try:
         raw_bytes = upload.read()
         if not raw_bytes:
             return jsonify({"success": False, "message": "image file is empty"}), 400
 
-        processed_bytes = preprocess_image_bytes(raw_bytes)
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-            temp_file.write(processed_bytes)
-            temp_path = temp_file.name
-
-        data = run_ocr_locked(temp_path)
+        image_variants = preprocess_variants(raw_bytes)
+        data = run_ocr_locked(image_variants)
         return jsonify({"success": True, "data": data})
     except Exception as exc:
         return jsonify({"success": False, "message": str(exc)}), 500
-    finally:
-        if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
 
 
 bootstrap_engine()
