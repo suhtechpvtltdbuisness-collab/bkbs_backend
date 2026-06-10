@@ -125,9 +125,16 @@ class EmployeeService {
         const user = employee.userId;
         const userId = user?._id?.toString();
 
-        const cardCounts = userId
-          ? await cardRepository.countDailyByPaymentMethod(userId, start, end)
-          : { total: 0, onlineCards: 0, offlineCards: 0 };
+        const settlementDetails = userId
+          ? await cardRepository.getDailySettlementDetails(userId, start, end)
+          : {
+              total: 0,
+              onlineCards: 0,
+              offlineCards: 0,
+              onlineAmount: 0,
+              offlineAmount: 0,
+              cards: [],
+            };
 
         const settlement = await settlementRepository.findByEmployeeAndDate(
           employee._id,
@@ -140,9 +147,14 @@ class EmployeeService {
           name: user?.name,
           email: user?.email,
           date: settlementDate,
-          dayCards: cardCounts.total,
-          onlineCards: cardCounts.onlineCards,
-          offlineCards: cardCounts.offlineCards,
+          dayCards: settlementDetails.total,
+          onlineCards: settlementDetails.onlineCards,
+          offlineCards: settlementDetails.offlineCards,
+          onlineAmount: settlementDetails.onlineAmount,
+          offlineAmount: settlementDetails.offlineAmount,
+          totalCollected:
+            settlementDetails.onlineAmount + settlementDetails.offlineAmount,
+          cards: settlementDetails.cards,
           amount: settlement?.amount || 0,
           status: settlement?.status === "done" ? "done" : "pending",
         };
@@ -168,14 +180,23 @@ class EmployeeService {
     const { start, end } = getDayRange(settlementDate);
     const empUserId = employee.userId?._id?.toString();
 
-    const cardCounts = empUserId
-      ? await cardRepository.countDailyByPaymentMethod(empUserId, start, end)
-      : { total: 0, onlineCards: 0, offlineCards: 0 };
+    const settlementDetails = empUserId
+      ? await cardRepository.getDailySettlementDetails(empUserId, start, end)
+      : {
+          total: 0,
+          onlineCards: 0,
+          offlineCards: 0,
+          onlineAmount: 0,
+          offlineAmount: 0,
+          cards: [],
+        };
 
     const updateData = {
-      cardsCount: cardCounts.total,
-      onlineCardsCount: cardCounts.onlineCards,
-      offlineCardsCount: cardCounts.offlineCards,
+      cardsCount: settlementDetails.total,
+      onlineCardsCount: settlementDetails.onlineCards,
+      offlineCardsCount: settlementDetails.offlineCards,
+      onlineAmount: settlementDetails.onlineAmount,
+      offlineAmount: settlementDetails.offlineAmount,
       updatedBy: userId,
     };
 
@@ -187,12 +208,17 @@ class EmployeeService {
       updateData.status = status;
     }
 
-    return await settlementRepository.upsert(
+    const settlement = await settlementRepository.upsert(
       employeeId,
       settlementDate,
       updateData,
       userId,
     );
+
+    return {
+      ...(settlement?.toObject ? settlement.toObject() : settlement),
+      cards: settlementDetails.cards,
+    };
   }
 }
 

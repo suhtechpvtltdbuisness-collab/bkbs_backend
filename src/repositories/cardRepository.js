@@ -122,12 +122,12 @@ class CardRepository {
   }
 
   /**
-   * Count cards created on a day by payment method (via linked Payment record).
+   * Daily settlement details: per-card amounts and summary by payment method.
    */
-  async countDailyByPaymentMethod(createdBy, start, end) {
+  async getDailySettlementDetails(createdBy, start, end) {
     const ONLINE_METHODS = ["online", "upi", "card", "netbanking", "wallet"];
 
-    const [result] = await Card.aggregate([
+    const rows = await Card.aggregate([
       {
         $match: {
           createdBy: String(createdBy),
@@ -150,28 +150,53 @@ class CardRepository {
               $ifNull: [{ $arrayElemAt: ["$payment.paymentMethod", 0] }, ""],
             },
           },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          onlineCards: {
-            $sum: {
-              $cond: [{ $in: ["$paymentMethod", ONLINE_METHODS] }, 1, 0],
-            },
+          collectedAmount: {
+            $ifNull: [
+              { $arrayElemAt: ["$payment.amount", 0] },
+              { $ifNull: ["$totalAmount", 0] },
+            ],
+          },
+          transactionId: {
+            $ifNull: [{ $arrayElemAt: ["$payment.transactionId", 0] }, ""],
+          },
+          orderId: {
+            $ifNull: [{ $arrayElemAt: ["$payment.orderId", 0] }, ""],
           },
         },
       },
+      { $sort: { createdAt: -1 } },
     ]);
 
-    const total = result?.total ?? 0;
-    const onlineCards = result?.onlineCards ?? 0;
+    const cards = rows.map((row) => {
+      const paymentMethod = row.paymentMethod || "cash";
+      const isOnline = ONLINE_METHODS.includes(paymentMethod);
+      const amount = Number(row.collectedAmount) || 0;
+
+      return {
+        cardId: row._id,
+        applicationId: row.applicationId,
+        applicantName: [row.firstName, row.middleName, row.lastName]
+          .filter(Boolean)
+          .join(" "),
+        amount,
+        paymentMethod,
+        collectionType: isOnline ? "online" : "offline",
+        transactionId: row.transactionId || "",
+        orderId: row.orderId || "",
+        createdAt: row.createdAt,
+      };
+    });
+
+    const onlineCards = cards.filter((c) => c.collectionType === "online");
+    const offlineCards = cards.filter((c) => c.collectionType === "offline");
 
     return {
-      total,
-      onlineCards,
-      offlineCards: total - onlineCards,
+      total: cards.length,
+      onlineCards: onlineCards.length,
+      offlineCards: offlineCards.length,
+      onlineAmount: onlineCards.reduce((sum, c) => sum + c.amount, 0),
+      offlineAmount: offlineCards.reduce((sum, c) => sum + c.amount, 0),
+      cards,
     };
   }
 
