@@ -121,6 +121,60 @@ class CardRepository {
     return await Card.countDocuments({ ...filter, isDeleted: false });
   }
 
+  /**
+   * Count cards created on a day by payment method (via linked Payment record).
+   */
+  async countDailyByPaymentMethod(createdBy, start, end) {
+    const ONLINE_METHODS = ["online", "upi", "card", "netbanking", "wallet"];
+
+    const [result] = await Card.aggregate([
+      {
+        $match: {
+          createdBy: String(createdBy),
+          isDeleted: false,
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $lookup: {
+          from: "payments",
+          localField: "_id",
+          foreignField: "cardId",
+          as: "payment",
+        },
+      },
+      {
+        $addFields: {
+          paymentMethod: {
+            $toLower: {
+              $ifNull: [{ $arrayElemAt: ["$payment.paymentMethod", 0] }, ""],
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          onlineCards: {
+            $sum: {
+              $cond: [{ $in: ["$paymentMethod", ONLINE_METHODS] }, 1, 0],
+            },
+          },
+        },
+      },
+    ]);
+
+    const total = result?.total ?? 0;
+    const onlineCards = result?.onlineCards ?? 0;
+
+    return {
+      total,
+      onlineCards,
+      offlineCards: total - onlineCards,
+    };
+  }
+
   async findByCreatedBy(createdBy, options = {}) {
     const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
 

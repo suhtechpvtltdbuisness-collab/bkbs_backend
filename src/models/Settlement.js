@@ -18,6 +18,16 @@ const settlementSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Cards count must be positive"],
     },
+    onlineCardsCount: {
+      type: Number,
+      default: 0,
+      min: [0, "Online cards count must be positive"],
+    },
+    offlineCardsCount: {
+      type: Number,
+      default: 0,
+      min: [0, "Offline cards count must be positive"],
+    },
     amount: {
       type: Number,
       default: 0,

@@ -125,12 +125,9 @@ class EmployeeService {
         const user = employee.userId;
         const userId = user?._id?.toString();
 
-        const dayCards = userId
-          ? await cardRepository.count({
-              createdBy: userId,
-              createdAt: { $gte: start, $lte: end },
-            })
-          : 0;
+        const cardCounts = userId
+          ? await cardRepository.countDailyByPaymentMethod(userId, start, end)
+          : { total: 0, onlineCards: 0, offlineCards: 0 };
 
         const settlement = await settlementRepository.findByEmployeeAndDate(
           employee._id,
@@ -143,7 +140,9 @@ class EmployeeService {
           name: user?.name,
           email: user?.email,
           date: settlementDate,
-          dayCards,
+          dayCards: cardCounts.total,
+          onlineCards: cardCounts.onlineCards,
+          offlineCards: cardCounts.offlineCards,
           amount: settlement?.amount || 0,
           status: settlement?.status === "done" ? "done" : "pending",
         };
@@ -169,14 +168,16 @@ class EmployeeService {
     const { start, end } = getDayRange(settlementDate);
     const empUserId = employee.userId?._id?.toString();
 
-    const cardsCount = empUserId
-      ? await cardRepository.count({
-          createdBy: empUserId,
-          createdAt: { $gte: start, $lte: end },
-        })
-      : 0;
+    const cardCounts = empUserId
+      ? await cardRepository.countDailyByPaymentMethod(empUserId, start, end)
+      : { total: 0, onlineCards: 0, offlineCards: 0 };
 
-    const updateData = { cardsCount, updatedBy: userId };
+    const updateData = {
+      cardsCount: cardCounts.total,
+      onlineCardsCount: cardCounts.onlineCards,
+      offlineCardsCount: cardCounts.offlineCards,
+      updatedBy: userId,
+    };
 
     if (amount !== undefined) {
       updateData.amount = amount;
