@@ -74,10 +74,59 @@ export const filterSensitiveData = (
   return filtered;
 };
 
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/**
+ * Parse settlement/card date strings into { y, m, d, iso }.
+ */
+export const parseCalendarDate = (dateStr) => {
+  if (!dateStr) {
+    const now = new Date(Date.now() + IST_OFFSET_MS);
+    const y = now.getUTCFullYear();
+    const m = now.getUTCMonth() + 1;
+    const d = now.getUTCDate();
+    const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    return { y, m, d, iso };
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return { y, m, d, iso: dateStr };
+  }
+
+  if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+    const [d, m, y] = dateStr.split("-").map(Number);
+    const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    return { y, m, d, iso };
+  }
+
+  const dt = new Date(dateStr);
+  const y = dt.getUTCFullYear();
+  const m = dt.getUTCMonth() + 1;
+  const d = dt.getUTCDate();
+  const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  return { y, m, d, iso };
+};
+
+/**
+ * IST calendar-day range for settlement queries (matches India-local business days).
+ */
+export const getISTDayRange = (dateStr) => {
+  const { y, m, d, iso } = parseCalendarDate(dateStr);
+
+  return {
+    start: new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0) - IST_OFFSET_MS),
+    end: new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999) - IST_OFFSET_MS),
+    isoDate: iso,
+  };
+};
+
 export default {
   extractToken,
   getClientIp,
   getUserAgent,
   paginate,
   filterSensitiveData,
+  parseCalendarDate,
+  getISTDayRange,
 };

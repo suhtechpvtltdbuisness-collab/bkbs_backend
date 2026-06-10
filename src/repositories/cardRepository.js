@@ -1,4 +1,13 @@
+import mongoose from "mongoose";
 import Card from "../models/Card.js";
+
+const buildCreatedByMatch = (createdBy) => {
+  const keys = [String(createdBy)];
+  if (mongoose.Types.ObjectId.isValid(createdBy)) {
+    keys.push(new mongoose.Types.ObjectId(createdBy));
+  }
+  return { $in: keys };
+};
 
 const LIST_CARD_SELECT =
   "-documents -__v";
@@ -124,15 +133,24 @@ class CardRepository {
   /**
    * Daily settlement details: per-card amounts and summary by payment method.
    */
-  async getDailySettlementDetails(createdBy, start, end) {
+  async getDailySettlementDetails(createdBy, start, end, isoDate) {
     const ONLINE_METHODS = ["online", "upi", "card", "netbanking", "wallet"];
+
+    const dateMatch = isoDate
+      ? {
+          $or: [
+            { createdAt: { $gte: start, $lte: end } },
+            { applicationDate: isoDate },
+          ],
+        }
+      : { createdAt: { $gte: start, $lte: end } };
 
     const rows = await Card.aggregate([
       {
         $match: {
-          createdBy: String(createdBy),
+          createdBy: buildCreatedByMatch(createdBy),
           isDeleted: false,
-          createdAt: { $gte: start, $lte: end },
+          ...dateMatch,
         },
       },
       {

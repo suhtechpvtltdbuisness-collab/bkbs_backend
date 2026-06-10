@@ -2,24 +2,7 @@ import employeeRepository from "../repositories/employeeRepository.js";
 import settlementRepository from "../repositories/settlementRepository.js";
 import cardRepository from "../repositories/cardRepository.js";
 import { ApiError } from "../utils/apiResponse.js";
-
-const getDayRange = (dateStr) => {
-  let y, m, d;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    [y, m, d] = dateStr.split("-").map(Number);
-  } else if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
-    [d, m, y] = dateStr.split("-").map(Number);
-  } else {
-    const dt = new Date(dateStr);
-    y = dt.getFullYear();
-    m = dt.getMonth() + 1;
-    d = dt.getDate();
-  }
-  return {
-    start: new Date(y, m - 1, d, 0, 0, 0, 0),
-    end: new Date(y, m - 1, d, 23, 59, 59, 999),
-  };
-};
+import { getISTDayRange } from "../utils/helpers.js";
 
 class EmployeeService {
   /**
@@ -112,8 +95,7 @@ class EmployeeService {
    * settlement status (done/pending).
    */
   async getEmployeeSettlements(date, filters = {}, options = {}) {
-    const settlementDate = date || new Date().toISOString().slice(0, 10);
-    const { start, end } = getDayRange(settlementDate);
+    const { start, end, isoDate: settlementDate } = getISTDayRange(date);
 
     const { employees, pagination } = await employeeRepository.findAll(
       filters,
@@ -126,7 +108,12 @@ class EmployeeService {
         const userId = user?._id?.toString();
 
         const settlementDetails = userId
-          ? await cardRepository.getDailySettlementDetails(userId, start, end)
+          ? await cardRepository.getDailySettlementDetails(
+              userId,
+              start,
+              end,
+              settlementDate,
+            )
           : {
               total: 0,
               onlineCards: 0,
@@ -176,12 +163,16 @@ class EmployeeService {
       throw new ApiError(404, "Employee not found");
     }
 
-    const settlementDate = date || new Date().toISOString().slice(0, 10);
-    const { start, end } = getDayRange(settlementDate);
+    const { start, end, isoDate: settlementDate } = getISTDayRange(date);
     const empUserId = employee.userId?._id?.toString();
 
     const settlementDetails = empUserId
-      ? await cardRepository.getDailySettlementDetails(empUserId, start, end)
+      ? await cardRepository.getDailySettlementDetails(
+          empUserId,
+          start,
+          end,
+          settlementDate,
+        )
       : {
           total: 0,
           onlineCards: 0,
